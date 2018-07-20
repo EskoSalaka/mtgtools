@@ -41,19 +41,19 @@ mtgtools can be simply installed with `pip install mtgtools`.
 
 ## Usage guide
 
-#### Persistent card, set and card list objects **PCard**, **PSet**, **PCardList** and **PSetList**
+### Persistent card, set and card list objects
 
-Working with the database mostly revolves around working with persistent card and card list objects. Data persistance in 
-this case basically means that ZODB will automatically detect when these objects are accessed and modified and saves 
-the according changes automatically when transactions have been committed.
+Working with the database mostly revolves around working with the following persistent card and card list objects. Data 
+persistance in this case basically means that ZODB will automatically detect when these objects are accessed and 
+modified and saves the according changes automatically when transactions have been committed.
 
 A good guide on ZODB can for example be found here: https://media.readthedocs.org/pdf/zodborg/latest/zodborg.pdf
 
-###### **PCard**
+#### **PCard**
 
-**PCard** is a simple persistent dataclass representing Magic: the Gathering cards with their characteristic
+`PCard` is a simple persistent dataclass representing Magic: the Gathering cards with their characteristic
 attributes. It is constructed simply with a json response dictionary from either magicthegathering.io or Scryfall
-API, so **PCard** has all the attributes matching the responses' keys and values. 
+API, so `PCard` has all the attributes matching the responses' keys and values. 
 
 Note, that the attributes `power`, `toughness` and `loyalty` are saved as strings since they might contain characters
 like '*' or 'X'. For convenience, the card objects will also contain numerical versions of these attributes: 
@@ -65,31 +65,31 @@ For more information on what attributes cards have, read
 https://scryfall.com/docs/api/cards for Scryfall card objects and
 https://docs.magicthegathering.io/#api_v1cards_list for magicthegathering.io card objects.
 
-###### **PCardList**
+#### **PCardList**
 
-**PCardList** is a persistent card list or deck object that mostly acts just like a normal Python list for **PCard** 
-objects. These lists can be saved in the database just like any other persistent objects, and a **PCardList** is used 
+`PCardList` is a persistent card list or deck object that mostly acts just like a normal Python list for `PCard` 
+objects. These lists can be saved in the database just like any other persistent objects, and a `PCardList` is used 
 as a container for all the cards in the database.
 
-**PCardList** has many useful methods for querying, filtering, sorting and grouping it's contents and creating new card 
+`PCardList` has many useful methods for querying, filtering, sorting and grouping it's contents and creating new card 
 lists by combining other card lists in various ways. It also contains other handy methods like downloading the images
 of it's cards from Scryfall, creating proxy image sheets from it's cards, printing out it's contents in a readable
 way and creating deck-like strings or files of it's contents.
 
-Except for the usual in-place list methods like `extend`, `append` and `remove` the **PCardList** is functional in 
-style, meaning that calling any of the other filtering or querying methods return new **PCardList** objects leaving the 
+Except for the usual in-place list methods like `extend`, `append` and `remove` the `PCardList` is functional in 
+style, meaning that calling any of the other filtering or querying methods return new `PCardList` objects leaving the 
 original untouched.
 
-**PCardList** can also be used as a deck by adding cards to it's 'sideboard'. Having cards in the 'sideboard'
+`PCardList` can also be used as a deck by adding cards to it's 'sideboard'. Having cards in the 'sideboard'
 changes some functionalities of the methods like 'deck_str' in which now also the sideboard cards are added. Images
 are downloaded and proxies created for both the cards and the sideboard. However, Having  cards in the 'sideaboard'
 does not change the behaviour of the crucial internal methods like __len__, __getitem__ or __setitem__,
 so basically the cards in the 'sideboard' are a kind of an extra.
 
 
-###### **PSet**
+#### **PSet**
 
-**Pset** is a simple Persistent dataclass representing Magic: The Gathering sets with their characteristic
+`Pset` is a simple Persistent dataclass representing Magic: The Gathering sets with their characteristic
 attributes. It is constructed simply with a json response dictionary from either magicthegathering.io or Scryfall
 API, so **PSet** has all the attributes matching the responses' keys and values.
 
@@ -97,20 +97,20 @@ For more information on what attributes sets have, read
 https://scryfall.com/docs/api/sets for Scryfall set objects and
 https://docs.magicthegathering.io/#api_v1sets_list for magicthegathering.io set objects.
 
-Additionally, **PSet** inherits from **PCardList** and it also contains all the cards of the set. Working with **PSet** 
-by for example querying it's cards returns new **PCardList** objects is safe for the set leaving it untouched.
+Additionally, `PSet` inherits from `PCardList` and it also contains all the cards of the set. Working with `PSet` 
+by for example querying it's cards returns new `PCardList` objects is safe for the set leaving it untouched.
 
-###### **PSetList**
+#### **PSetList**
 
-**PSetList** is a persistent set list object that mostly acts just like a normal Python list for **Pset** objects.
-These lists can be saved in the database just like any other persistent objects. **PSetList** contains handy methods for
+`PSetList` is a persistent set list object that mostly acts just like a normal Python list for `Pset` objects.
+These lists can be saved in the database just like any other persistent objects. `PSetList` contains handy methods for
 querying the sets it contains but in most cases it is only useful as a container database. It works very similarly
-to **PCardList** except that they hold sets rather than cards.
+to `PCardList` except that they hold sets rather than cards.
 
 
-#### Working with the database
+### Working with the database
 
-###### Opening/creating databases
+#### Opening/creating databases
 
 An existing database can be opened simply with
 ```
@@ -136,7 +136,7 @@ and
 
 ```
 
-All the cards are saved as a **PCardList** and all the sets are saved as a **PSetList**. The root acts as a 
+All the cards are saved as a `PCardList` and all the sets are saved as a `PSetList`. The root acts as a 
 boot-strapping point and a top-level container for all the objects in the database.
 
 ```
@@ -159,7 +159,7 @@ The above method for accessing the database objects is a convenience, and you ca
 True
 ```
 
-###### Updating
+#### Updating
 
 Building the database from scratch from Scryfall and mtgio is simply done with
 ```
@@ -184,15 +184,19 @@ requests per second are sent during updating which should comply with the Scryfa
 you have to make sure not to run the update too many times per hour. 
 
 
-#### Working with card lists
+### Working with card lists
 
-###### Querying, filtering and sorting
+#### Querying, filtering and sorting
 
-**PCardList** has two handy methods for "querying" its contents which return new **PCardList** objects:
-`where(invert=False, search_all_faces=False, **kwargs)` <br/>and <br/>
+`PCardList` has two handy methods for "querying" its contents which return new `PCardList` objects:<br/>
+
+`where(invert=False, search_all_faces=False, **kwargs)` 
+
+and 
+
 `where_exactly(invert=False, search_all_faces=False, **kwargs)`
 
-`where`, the looser method, returns a new **PCardList** for which _ANY of the given keyword arguments match 'loosely'_ 
+`where`, the looser method, returns a new `PCardList` for which _ANY of the given keyword arguments match 'loosely'_ 
 with the attributes of the cards in this list. The arguments should be any card attribute names such as 
 '_power_', '_toughness_' and '_name_'. 
 
@@ -303,11 +307,11 @@ For example sorting by set codes:
 [Werebear (ema), Werebear (ody), Werebear (td0), Werebear (wc02)]
 ```
 
-Finally, the card objects in the **PCardList**s are stored in `some_list.cards` in a PersistentList which can be
-accessed directly.
+Finally, the card objects in `PCardList` are stored in it's `cards` - attribute, in a `PersistentList` which can also 
+be accessed directly.
 
-###### Creating and combining lists
-**PCardList** acts like normal Python list so we can use normal indexing and slicing. You can also create empty lists:
+#### Creating and combining lists
+`PCardList` acts like normal Python list so we can use normal indexing and slicing. You can also create empty lists:
 ```
 >>> werebears = cards.where_exactly(name='Werebear')
 >>> print(werebears[1:3])
@@ -429,7 +433,7 @@ and error at first to get what you exactly want.
 ```
 
 
-###### Grouping cards
+#### Grouping cards
 
 Cards in the lists can be grouped in various ways like color, type or converted mana cost. Grouping 
 returns dicts with group identities as keys and cards lists corresponding the group as values. When grouping by color or
@@ -468,10 +472,10 @@ You can also create a special kind of grouping, or a kind of an "index", of the 
 and these can also be handily saved in the database as indexes.
 
 
-###### Reading cards from files and strings
+#### Reading cards from files and strings
 
 Cards can also be retrieved from the database (and from any other card lists) by reading them from list-like strings
-and text files by using the **PCardList**'s `from_str` and `from_file` methods which build new card lists of the cards
+and text files by using the `PCardList` - methods `from_str` and `from_file` which build new card lists of the cards
 found in the list. The accepted format of the strings and text files is similar to the standard Apperentice and MWS
 deck lists:
 ```
@@ -718,13 +722,13 @@ Card                 Set   Type                 Cost     Rarity
 ```
 
 
-###### Saving your own things in the database
+### Saving your own things in the database
 
 A good guide about saving things in ZODB can be found here: 
 http://www.zodb.org/en/latest/guide/writing-persistent-objects.html 
 
-Any objects mentioned above are already Persistent, so they can be conveniently saved. For example **PCardList**'s can 
-easily be saved with
+Any objects mentioned above are already Persistent, so they can be conveniently saved. For example any `PCardList` 
+objects can easily be saved with
 ```
 >>> my_favourite_cards = cards.where_exactly(name='Counterspell', set='plgm') + cards.where_exactly(name='Cancel', set='p10')
 >>> my_favourite_cards.name = 'My fav cards'
@@ -752,7 +756,7 @@ Card             Set    Type      Cost        Rarity
 1 Mana Drain     ima    Instant   {U}{U}      mythic
 ```
 
-You can similarly save decks or other card lists for example by using a **PersistentList** which works almost like a 
+You can similarly save decks or other card lists for example by using a `PersistentList` which works almost like a 
 normal Python list:
 ```
 >>> from persistent.list import PersistentList
@@ -844,8 +848,8 @@ SB: 1 Wipe Away
 and then later on you can append more lists and access them the same way with single cards.
 
 Another thing you might want to save in the database is for example an index of cards for faster retrieval. An 'index' 
-in this case would be a fast persistent dict like BTree where the keys are some unique identifiers. For **PCardList**s, 
-there already exists the method `create_id_index` which returns a BTree in which the cards are indexed by their unique 
+in this case would be a fast persistent dict like BTree where the keys are some unique identifiers. For `PCardList`, 
+there already exists the method `create_id_index` which returns a `BTree` in which the cards are indexed by their unique 
 'id' values and each id maps to a single card object found in the original list. This is handy if called on the whole
 database and saved:
 
@@ -864,17 +868,17 @@ Counterspell (wc00)
 
 Similarly, the index can also be used to speedily check if some object exists in the database.
 
-**PCardList**s have a similar unique id so they are also simple to index if needed.
+`PCardList` objects have a similar unique id so they are also simple to index if needed.
 
 
-#### Working with sets and setlists
+### Working with sets and setlists
 
-**PSet**s and **PSetList**s work very similarly to **PCard**s and **PCardList**s. The difference is that **PSet**s
-are also **PCardList**s and contain a set of their own characteristic Magic: The Gathering set attributes. **PSetList**s
-can be searched, filtered and sorted exactly like **PCardList**s by using the methods `where`, `where_exactly`, 
-`filtered` and `sorted` which similarly return new **PSetList** objects. 
+`PSet` and `PSetList` work very similarly to `PCard` and `PCardList`. The difference is that `PSet`
+is also a `PCardList` and contains a set of it's own characteristic Magic: The Gathering set attributes. `PSetList`
+objects can be searched, filtered and sorted exactly like `PCardList` objects by using the methods `where`, 
+`where_exactly`, `filtered` and `sorted` which similarly return new `PSetList` objects. 
 
-The sets are saved in the database as a **PSetList**.
+The sets are saved in the database as a `PSetList`.
 
 ```
 >>> sets.where(block='Masques').pretty_print()
@@ -913,7 +917,7 @@ Morningtide                  mor   Lorwyn                expansion          150
 Magic Online Promos          prm                         promo              1198
 ```
 
-#### What else can you do with cards and sets?
+### What else can you do with cards and sets?
 
 The rest of the methods and functionalities are quite self explanatory and well documented, so they don't need further
 guidance. You can for example create random booster packs from card lists with `random_pack`, download images from 
