@@ -249,7 +249,8 @@ class PSet(PCardList, Persistent):
         6 types of image files and by default 'normal' sized images are downloaded. More information at:
         https://scryfall.com/docs/api/images.
 
-        If no path is given a new folder named with the set's code is created and images downloaded there.
+        If no path is given a new folder named with the set's code is created in the current working folder and images
+        downloaded there. If a path is given, a new folder named with the set's code is created in the given path.
         Paths should be specified in the format 'C:\\users\\Timmy\\...' and the names of the image files name
         will be the card names, eq. 'Wild Mongrel.jpg'. Specifying wrong kind of paths might lead to
         undefined behaviour or errors.
@@ -262,6 +263,8 @@ class PSet(PCardList, Persistent):
 
         if not dir_path:
             super().download_images_from_scryfall(image_type=image_type, dir_path=self.code + '\\')
+        else:
+            super().download_images_from_scryfall(image_type=image_type, dir_path=dir_path + self.code + '\\')
 
     @property
     def json(self):

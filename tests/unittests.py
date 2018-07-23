@@ -500,10 +500,11 @@ class TestPCardsListMethodsScryfall(unittest.TestCase):
         print(list1.json)
         print(list1.json)
 
-        # def test_pretty_print_and_str(self):
-        #     cards.pprint()
-        #     print(cards.deck_str())
-        #     print(cards.json)
+        def test_pretty_print_and_str(self):
+            cards.pprint()
+            print(cards.deck_str())
+            print(cards.json)
+
 
 if __name__ == '__main__':
     unittest.main()
