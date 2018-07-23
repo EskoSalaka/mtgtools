@@ -920,7 +920,7 @@ class PCardList(Persistent):
 
         return deck
 
-    def pretty_print(self):
+    def pprint(self):
         """Prints out the contents of this list in a nice readable way."""
         print(self.pretty_print_str())
 
@@ -930,6 +930,13 @@ class PCardList(Persistent):
         Returns:
             str: a string of the contents of this list in a nice readable format.
         """
+
+        if len(self) == 0:
+            if self.name:
+                return 'Empty card list "{}" created at {}\n'.format(self.name, str(self.creation_date))
+            else:
+                return 'Unnamed empty card list created at {}\n'.format(self.creation_date)
+
         pp_str = ''
         format_str = "{name:{w1}s}   {set:{w2}s}   {type:{w3}s}   {mana:{w4}s}   {rarity:{w5}s}\n"
 
@@ -941,15 +948,15 @@ class PCardList(Persistent):
             pp_str += 'Unnamed card list created at {} with a total of {} cards\n'.format(self.creation_date,
                                                                                           len(self))
 
-        if self.api_type == 'scryfall':
-            longest_name = max(len(card.name) for card in self.cards + self.sideboard) + 2
-            longest_rarity = max(len(card.rarity) for card in self.cards + self.sideboard)
-            longest_set = max(len(card.set) for card in self.cards + self.sideboard)
+        longest_name = max(len(card.name) for card in self.cards + self.sideboard) + 2
+        longest_rarity = max(len(card.rarity) for card in self.cards + self.sideboard)
+        longest_set = max(len(card.set) for card in self.cards + self.sideboard)
 
-            longest_type_line = 0
-            longest_mana_cost = 0
+        longest_type_line = 0
+        longest_mana_cost = 0
 
-            for card in self.cards + self.sideboard:
+        for card in self.cards + self.sideboard:
+            if self.api_type == 'scryfall':
                 if card.type_line and len(card.type_line) > longest_type_line:
                     longest_type_line = len(card.type_line)
 
@@ -963,22 +970,27 @@ class PCardList(Persistent):
                 if card.card_faces and card.card_faces[0].get('mana_cost'):
                     if len(card.card_faces[0].get('mana_cost')) > longest_mana_cost:
                         longest_mana_cost = len(card.card_faces[0].get('mana_cost'))
+            else:
+                longest_type_line = max(len(card.type) for card in self.cards + self.sideboard)
+                longest_mana_cost = max([len(card.mana_cost) for card in self.cards + self.sideboard
+                                         if card.mana_cost], default=0)
 
-            longest_type_line = 4 if longest_type_line < 4 else longest_type_line
-            longest_mana_cost = 4 if longest_mana_cost < 4 else longest_mana_cost
+        longest_type_line = 4 if longest_type_line < 4 else longest_type_line
+        longest_mana_cost = 4 if longest_mana_cost < 4 else longest_mana_cost
 
-            pp_str += '-' * (longest_name + longest_rarity + longest_type_line + longest_mana_cost + 17) + '\n'
-            pp_str += format_str.format(name='Card', w1=longest_name,
-                                        set='Set', w2=longest_set,
-                                        type='Type', w3=longest_type_line,
-                                        mana='Cost', w4=longest_mana_cost,
-                                        rarity='Rarity', w5=longest_rarity)
-            pp_str += '-' * (longest_name + longest_rarity + longest_type_line + longest_mana_cost + 17) + '\n'
+        pp_str += '-' * (longest_name + longest_rarity + longest_type_line + longest_mana_cost + 17) + '\n'
+        pp_str += format_str.format(name='Card', w1=longest_name,
+                                    set='Set', w2=longest_set,
+                                    type='Type', w3=longest_type_line,
+                                    mana='Cost', w4=longest_mana_cost,
+                                    rarity='Rarity', w5=longest_rarity)
+        pp_str += '-' * (longest_name + longest_rarity + longest_type_line + longest_mana_cost + 17) + '\n'
 
-            for cards in self.grouped_by_id().values():
-                card = cards[0]
-                num = len(cards)
+        for cards in self.grouped_by_id().values():
+            card = cards[0]
+            num = len(cards)
 
+            if self.api_type == 'scryfall':
                 if card.card_faces and not card.type_line:
                     type_line = card.card_faces[0].get('type_line')
                 else:
@@ -988,20 +1000,24 @@ class PCardList(Persistent):
                     mana_cost = card.card_faces[0].get('mana_cost')
                 else:
                     mana_cost = card.mana_cost
+            else:
+                type_line = card.type
+                mana_cost = card.mana_cost if card.mana_cost else ''
 
-                pp_str += format_str.format(name=str(num) + ' ' + card.name, w1=longest_name,
-                                            set=card.set, w2=longest_set,
-                                            type=type_line.replace('—', '-'), w3=longest_type_line,
-                                            mana=mana_cost, w4=longest_mana_cost,
-                                            rarity=card.rarity, w5=longest_rarity)
+            pp_str += format_str.format(name=str(num) + ' ' + card.name, w1=longest_name,
+                                        set=card.set, w2=longest_set,
+                                        type=type_line.replace('—', '-'), w3=longest_type_line,
+                                        mana=mana_cost, w4=longest_mana_cost,
+                                        rarity=card.rarity, w5=longest_rarity)
 
-            if self.sideboard:
-                pp_str += '\nSideboard:\n'
+        if self.sideboard:
+            pp_str += '\nSideboard:\n'
 
-                for cards in PCardList(self.sideboard).grouped_by_id().values():
-                    card = cards[0]
-                    num = len(cards)
+            for cards in PCardList(self.sideboard).grouped_by_id().values():
+                card = cards[0]
+                num = len(cards)
 
+                if self.api_type == 'scryfall':
                     if card.card_faces and not card.type_line:
                         type_line = card.card_faces[0].get('type_line')
                     else:
@@ -1011,14 +1027,17 @@ class PCardList(Persistent):
                         mana_cost = card.card_faces[0].get('mana_cost')
                     else:
                         mana_cost = card.mana_cost
+                else:
+                    type_line = card.type
+                    mana_cost = card.mana_cost if card.mana_cost else ''
 
-                    pp_str += format_str.format(name=str(num) + ' ' + card.name, w1=longest_name,
-                                                set=card.set, w2=4,
-                                                type=type_line.replace('—', '-'), w3=longest_type_line,
-                                                mana=mana_cost, w4=longest_mana_cost,
-                                                rarity=card.rarity, w5=longest_rarity)
+                pp_str += format_str.format(name=str(num) + ' ' + card.name, w1=longest_name,
+                                            set=card.set, w2=4,
+                                            type=type_line.replace('—', '-'), w3=longest_type_line,
+                                            mana=mana_cost, w4=longest_mana_cost,
+                                            rarity=card.rarity, w5=longest_rarity)
 
-            return pp_str
+        return pp_str
 
     def download_images_from_scryfall(self, image_type='normal', dir_path=''):
         """Downloads all the of this list's cards from Scryfall to a given directory with path 'dir_path'. Scryfall

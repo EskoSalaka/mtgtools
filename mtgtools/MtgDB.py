@@ -177,6 +177,13 @@ class MtgDB:
                 self._get_response_json_with_headers(card_page_uri, headers)[list_identifier]]
 
     def update_new_from_mtgio(self, verbose=True, workers=8):
+        """Downloads only the new set data along with the sets' cards from magicthegathering.io and leaves everything
+        else intact. This is a a bit faster than a full update.
+
+        Args:
+            verbose (bool): If enabled, prints out progression messages during the updating process.
+            workers (int): Maximum numbers fo threads for the updating.
+        """
         start = round(time.time())
         current_cards = self.root.mtgio_cards
         current_sets = self.root.mtgio_sets
@@ -271,6 +278,13 @@ class MtgDB:
             sys.stdout.write(update_str.format(datetime.timedelta(seconds=round(time.time()) - start)))
 
     def full_update_from_mtgio(self, verbose=True, workers=8):
+        """Completely updates the database from magicthegathering.io downloading new sets and cards and also
+        updating the current objects if there are any changes.
+
+        Args:
+            verbose (bool): If enabled, prints out progression messages during the updating process.
+            workers (int): Maximum numbers fo threads for the updating.
+        """
         start = round(time.time())
         current_cards = self.root.mtgio_cards
         current_sets = self.root.mtgio_sets
@@ -361,6 +375,13 @@ class MtgDB:
             sys.stdout.write(update_str.format(datetime.timedelta(seconds=round(time.time()) - start)))
 
     def update_new_from_scryfall(self, verbose=True, workers=8):
+        """Downloads only the new set data along with the sets' cards from Scryfall and leaves everything
+        else intact. This is a a bit faster than a full update.
+
+        Args:
+            verbose (bool): If enabled, prints out progression messages during the updating process.
+            workers (int): Maximum numbers fo threads for the updating.
+        """
         start = round(time.time())
         current_sets = self.root.scryfall_sets
         current_cards = self.root.scryfall_cards
@@ -439,6 +460,13 @@ class MtgDB:
             sys.stdout.write(update_str.format(datetime.timedelta(seconds=round(time.time()) - start)))
 
     def full_update_from_scryfall(self, verbose=True, workers=8):
+        """Completely updates the database from magicthegathering.io downloading new sets and cards and also
+        updating the current objects if there are any changes.
+
+        Args:
+            verbose (bool): If enabled, prints out progression messages during the updating process.
+            workers (int): Maximum numbers fo threads for the updating.
+        """
         start = round(time.time())
 
         current_sets = self.root.scryfall_sets
@@ -519,6 +547,9 @@ class MtgDB:
             sys.stdout.write(update_str.format(datetime.timedelta(seconds=round(time.time()) - start)))
 
     def format_and_pack(self):
+        """Formats the database. After this operation, the old objects are still available in 'mydata.fs.old'
+        storage.
+        """
         answer = input('Attempting to format the whole database. Continue (y/n)?')
 
         if answer == 'y' or answer == 'yes':
@@ -536,12 +567,15 @@ class MtgDB:
         self.storage.close()
 
     def commit(self):
+        """Commits any changes to the database."""
         transaction.commit()
 
     def abort(self):
+        """Aborts any changes made to the database."""
         transaction.abort()
 
     def pack(self):
+        """Packs the database."""
         self.database.pack()
 
 

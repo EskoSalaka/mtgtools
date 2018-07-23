@@ -34,6 +34,18 @@ card database of 40k cards take about 0.15s on my computer.
 
  * **PIL** - Not necessary, bur needed for creating proxy image sheets. Can be installed with `pip install pillow`
 
+## Scryfall vs magicthegathering.io
+
+At the moment there exists two different kind of APIs for mtg data, Scryfall and magicthegathering.io. They are 
+structured in different ways and both have pros and cons. For example Scryfall cards contain attribute `card_faces` 
+where as the faces in mtgio are separate cards. 
+
+At the moment Scryfall has a more extensive database with more useful data like prices and purchase uris and also hosts 
+good quality card images, so in my opinion it is more useful of the two.
+
+Another difference between Scryfall and mtgio is that in mtgio API attribute names are in camelCase style. For the 
+purpose of consistency, the attributes in this software are transformed into snake_case which makes many of the
+attributes identical to the ones in Scryfall.
 
 ## Installing
 
@@ -394,7 +406,7 @@ you have to multiply lists, not card objects):
 
 >>> bear_and_arena = PCardList() + cards.where_exactly(name='Werebear')[0] + cards.where_exactly(name='Arena')[0]
 >>> playset_of_bears_and_arenas = 4 * bear_and_arena
->>> playset_of_bears_and_arenas.pretty_print()
+>>> playset_of_bears_and_arenas.pprint()
 
 Unnamed card list created at 2018-07-18 14:51:23.759658
 ------------------------------------------------------------------
@@ -661,7 +673,7 @@ for numerical attributes it is enough for the argument to be equal or larger. No
 Creatures in Odyssey with power > 5:
 ```
 >>> ody = sets.where_exactly(code='ody')[0]
->>> ody.creatures().where(power_num=5, invert=True).pretty_print()
+>>> ody.creatures().where(power_num=5, invert=True).pprint()
 
 Unnamed card list created at 2018-07-20 15:32:59.202900
 ---------------------------------------------------------------------------------------
@@ -675,7 +687,7 @@ Card                    Set   Type                                   Cost       
 White creatures Not including multicolors in Odyssey with power <= 2 AND toughness <= 2:
 ```
 >>> ody = sets.where_exactly(code='ody')[0]
->>> ody.creatures().where(power_num=2).where(toughness_num=2).where_exactly(colors='W').pretty_print()
+>>> ody.creatures().where(power_num=2).where(toughness_num=2).where_exactly(colors='W').pprint()
 
 Unnamed card list created at 2018-07-20 16:03:08.122375 with a total of 20 cards
 ------------------------------------------------------------------------------------------
@@ -706,7 +718,7 @@ Card                      Set   Type                                Cost        
 Auras in Odyssey with cmc <= 2:
 ```
 >>> ody = sets.where_exactly(code='ody')[0]
->>> ody.where(cmc=2).where(type_line='aura').pretty_print()
+>>> ody.where(cmc=2).where(type_line='aura').pprint()
 
 Unnamed card list created at 2018-07-20 16:05:48.340844 with a total of 7 cards
 -------------------------------------------------------------------
@@ -745,7 +757,7 @@ You can then easily later append more cards with
 and access them later with 
 ```
 >>> my_fav_cards = mtg_db.root.my_favourite_cards
->>> my_fav_cards.pretty_print()
+>>> my_fav_cards.pprint()
 
 Card list "My fav cards" created at 2018-07-18 18:36:54.135282
 -----------------------------------------------------
@@ -871,7 +883,7 @@ Similarly, the index can also be used to speedily check if some object exists in
 `PCardList` objects have a similar unique id so they are also simple to index if needed.
 
 
-### Working with sets and setlists
+### Working with sets and set lists
 
 `PSet` and `PSetList` work very similarly to `PCard` and `PCardList`. The difference is that `PSet`
 is also a `PCardList` and contains a set of it's own characteristic Magic: The Gathering set attributes. `PSetList`
@@ -880,8 +892,12 @@ objects can be searched, filtered and sorted exactly like `PCardList` objects by
 
 The sets are saved in the database as a `PSetList`.
 
+
+#### Some examples
+
+Sets in Masques block:
 ```
->>> sets.where(block='Masques').pretty_print()
+>>> sets.where(block='Masques').pprint()
 
 Unnamed set list created at 2018-07-18 13:39:44.602675
 -----------------------------------------------------
@@ -890,8 +906,11 @@ Set                 Code  Block     Type        Cards
 Prophecy            pcy   Masques   expansion   143
 Nemesis             nem   Masques   expansion   143
 Mercadian Masques   mmq   Masques   expansion   350
+```
 
->> sets.filtered(lambda pset: any(pset.where_exactly(name='Negate'))).pretty_print()
+All the sets containing a Negate:
+```
+>> sets.filtered(lambda pset: any(pset.where_exactly(name='Negate'))).pprint()
 
 Unnamed set list created at 2018-07-18 13:39:52.329598
 ---------------------------------------------------------------------------------
@@ -917,6 +936,32 @@ Morningtide                  mor   Lorwyn                expansion          150
 Magic Online Promos          prm                         promo              1198
 ```
 
+Normal standard-legal sets without promos:
+```
+>>> standard_sets = sets.where(set_type='promo', invert=True)
+>>> def standard_legal(pset):
+        return len(pset) and len(pset) == len(
+            pset.filtered(lambda card: card.legalities['standard'] == 'legal' or card.legalities['standard'] == 'banned')
+        )
+        
+>>> standard_sets.filtered(standard_legal).pprint()
+
+Unnamed set list created at 2018-07-23 12:33:31.340701
+--------------------------------------------------------
+Set                   Code  Block      Type        Cards
+--------------------------------------------------------
+Core Set 2019         m19              core        314
+Dominaria             dom              expansion   280
+Rivals of Ixalan      rix   Ixalan     expansion   205
+Ixalan                xln   Ixalan     expansion   289
+Hour of Devastation   hou   Amonkhet   expansion   209
+Amonkhet              akh   Amonkhet   expansion   287
+Welcome Deck 2017     w17              starter     30
+Aether Revolt         aer   Kaladesh   expansion   194
+Kaladesh              kld   Kaladesh   expansion   274
+```
+
+
 ### What else can you do with cards and sets?
 
 The rest of the methods and functionalities are quite self explanatory and well documented, so they don't need further
@@ -928,7 +973,7 @@ Scryfall with `download_images_from_scryfall`, create sheets of proxy images of 
 
 #### Possible bugs
 
-The tools are somewhat decently tested for Scryfall data but some bugs and unexpected behaviour are to be expected, 
+The tools are somewhat decently tested for Scryfall data but some bugs and weird behaviour are to be expected, 
 especially with some special cards.
 
 Currently, the data from magicthegathering.io is not tested but it should still work quite like Scryfall data. If you
@@ -956,17 +1001,6 @@ ZODB does not automatically recognize changes to these kinds of attributes. When
 mutable attributes, you must manually set the object's `_p_changed` attribute to `True` before calling `commit`. Often 
 simpler way is to just use assignement or `setattr` instead of changing something inside the attribute. In this case, 
 when the whole attribute is reassigned, ZODB will recognize this and changes are saved when committing.
-
-
-#### Scryfall vs magicthegathering.io
-
-At the moment there exists two different kind of APIs for mtg data, Scryfall and magicthegathering.io. They are 
-structured in different ways and both have pros and cons. For example Scryfall cards contain attribute `card_faces` 
-where as the faces in mtgio are separate cards. 
-
-At the moment Scryfall has a more extensive database with more useful data like prices and purchase uris and also hosts 
-good quality card images, so in my opinion it is more useful of the two.
-
 
 ## Authors
 

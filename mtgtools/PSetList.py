@@ -74,7 +74,7 @@ import warnings
 
 from persistent import Persistent
 from persistent.list import PersistentList
-from mtgtools import PSet
+from mtgtools.PSet import PSet
 
 
 class PSetList(Persistent):
@@ -125,7 +125,7 @@ class PSetList(Persistent):
             return PSetList(self.sets + other.sets)
         elif isinstance(other, (PersistentList, list, tuple)):
             return PSetList(self.sets + other)
-        elif isinstance(other, PSet.PSet):
+        elif isinstance(other, PSet):
             new_sets = PersistentList(self.sets)
             new_sets.append(other)
             return PSetList(new_sets)
@@ -137,7 +137,7 @@ class PSetList(Persistent):
             return PSetList(self.sets + other.sets)
         elif isinstance(other, (PersistentList, list, tuple)):
             return PSetList(self.sets + other)
-        elif isinstance(other, PSet.PSet):
+        elif isinstance(other, PSet):
             new_sets = PersistentList(self.sets)
             new_sets.append(other)
             return PSetList(new_sets)
@@ -149,7 +149,7 @@ class PSetList(Persistent):
             return PSetList(self.sets + other.sets)
         elif isinstance(other, (PersistentList, list, tuple)):
             return PSetList(self.sets + other)
-        elif isinstance(other, PSet.PSet):
+        elif isinstance(other, PSet):
             new_sets = PersistentList(self.sets)
             new_sets.append(other)
             return PSetList(new_sets)
@@ -360,16 +360,23 @@ class PSetList(Persistent):
         else:
             return PSetList([pset for pset in self if not pset.matches_all(**kwargs)])
 
-    def pretty_print(self):
+    def pprint(self):
         """Prints out the contents of this list in a nice readable way."""
-        print(self.pretty_print_str())
+        print(self.pprint_str())
 
-    def pretty_print_str(self):
+    def pprint_str(self):
         """Returns a nice readable string of the contents of this list.
 
         Returns:
             str: a string of the contents of this list in a nice readable format.
         """
+
+        if len(self) == 0:
+            if self.name:
+                return 'Empty set list "{}" created at {}\n'.format(self.name, str(self.creation_date))
+            else:
+                return 'Unnamed empty set list created at {}\n'.format(self.creation_date)
+
         pp_str = ''
 
         if self.name:
@@ -385,9 +392,9 @@ class PSetList(Persistent):
         pp_str += '-' * (longest_name + longest_type + longest_block + longest_code + 17)
         pp_str += '\n'
 
-        format_str = '{name:{w1}s}   {code:{w2}s}  {block:{w3}s}   {type:{w4}s}   {cards}\n'
+        format_str = '{name:{w1}s}   {code:{w2}s}   {block:{w3}s}   {type:{w4}s}   {cards}\n'
         pp_str += format_str.format(name='Set', w1=longest_name,
-                                    code='Code', w2=3,
+                                    code='Code', w2=longest_code,
                                     block='Block', w3=longest_block,
                                     type='Type', w4=longest_type,
                                     cards='Cards')

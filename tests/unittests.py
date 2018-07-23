@@ -493,7 +493,7 @@ class TestPCardsListMethodsScryfall(unittest.TestCase):
         self.assertEqual(len(list1), 14)
         self.assertEqual(len(list2), 10)
 
-        sets.pretty_print()
+        sets.pprint()
         sets.json
 
         list1 = PSetList() + sets[20] + sets[21]
@@ -501,7 +501,7 @@ class TestPCardsListMethodsScryfall(unittest.TestCase):
         print(list1.json)
 
         # def test_pretty_print_and_str(self):
-        #     cards.pretty_print()
+        #     cards.pprint()
         #     print(cards.deck_str())
         #     print(cards.json)
 

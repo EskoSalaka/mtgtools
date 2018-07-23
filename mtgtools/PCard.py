@@ -298,7 +298,7 @@ class PCard(Persistent):
         self.toughness_num = self.__mk_num(self.toughness)
         self.loyalty_num = self.__mk_num(self.loyalty)
 
-        if self.card_faces:
+        if getattr(self, 'card_faces', None):
             for card_face in self.card_faces:
                 if 'power' in card_face:
                     card_face['power_num'] = self.__mk_num(card_face.get('power'))
@@ -345,6 +345,9 @@ class PCard(Persistent):
         return '{} ({})'.format(self.name, self.set)
 
     def __mk_num(self, s):
+        if type(s) is float or type(s) is int:
+            return float(s)
+
         if s is not None:
             s_num = s.translate(str.maketrans('', '', '+*∞?²X'))
 
@@ -354,10 +357,6 @@ class PCard(Persistent):
                 return None
         else:
             return None
-
-    def update(self, response_dict):
-        for key, value in response_dict.items():
-            setattr(self, key, value)
 
     def __comp(self, attr, val):
         if isinstance(attr, list):
@@ -380,6 +379,21 @@ class PCard(Persistent):
         else:
             if val != attr:
                 return True
+
+    def update(self, response_dict):
+        for key, value in response_dict.items():
+            setattr(self, key, value)
+
+            if key == 'card_faces' and value is not None:
+                for card_face in self.card_faces:
+                    if 'power' in card_face:
+                        card_face['power_num'] = self.__mk_num(card_face.get('power'))
+
+                    if 'toughness' in card_face:
+                        card_face['toughness_num'] = self.__mk_num(card_face.get('toughness'))
+
+                    if 'loyalty' in card_face:
+                        card_face['loyalty_num'] = self.__mk_num(card_face.get('loyalty'))
 
     def matches_any(self, search_all_faces=False, **kwargs):
         """Returns True if any of the given keyword arguments match 'loosely' with this cards's attributes.
