@@ -1,9 +1,9 @@
 # mtgtools
 
-mtgtools is a collection of tools for easy and convenient handling and downloading of Magic: The Gathering
-card and set data on your computer. The card and set data can be easily downloaded from **Scryfall** API 
-and/or **magicthegathering.io** API and it is saved in a ZODB - database, which is a native object database for Python. 
-Everything is simply in Python, so no knowledge of SQL is needed to work with the database.
+mtgtools is a collection of tools for easy handling of **Magic: The Gathering** data on your computer. The card data
+can be easily downloaded from **Scryfall** API or **magicthegathering.io** API and it is saved in a ZODB - database, 
+which is a native object database for Python. Everything is simply in Python, so no knowledge of SQL is needed to 
+work with the database.
 
 ## Features
 

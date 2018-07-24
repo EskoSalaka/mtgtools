@@ -848,6 +848,9 @@ class PCardList(Persistent):
         'type': Groups the cards by their types. Eg. under 'Lands', 'Artifacts', 'Creatures', ...
         'cmc': Groups the cards by their converted casting costs. Eg. under '1', '2', '3', ...
 
+        Args:
+            group_by (str): How the cards are grouped in the string. Either 'none', 'color', 'type' or 'cmc'
+            add_set_codes (bool): If enabled, also the set codes are added after the card names.
         Returns:
             str: A string of the cards of this list in a readable deck format.
         """
@@ -1285,6 +1288,64 @@ class PCardList(Persistent):
         except (IOError, FileNotFoundError):
             print('Something went wrong with reading file {}'.format(file_path))
             print('Check that the file exists in the given path and that it is a simple text file.')
+
+    def to_file(self, file_path, group_by='type', add_set_codes=True):
+        """Writes the cards in this list in a readable deck form in a file. The cards cannot be written in an existing
+        file. The file path must be given in the format of "C:/Users/jhonny/Desktop/my_text_file.txt" where
+        "my_text_file.txt" is the name of the file to be created. The function results in an error if the file already
+        exists or the path is invalid, eg. a path to a foolder.
+
+        Optionally the set code of the cards can be left out by setting 'add_set_codes' to False. If this card
+        list has any cards in the sideboard, those will be added with the prefix 'SB:'.
+
+        The string will be of the following format:
+        --------------------------------------
+        //This is a comment
+        num Card Name [set_code] /n
+        num Card Name [set_code] /n
+        num Card Name [set_code] /n
+
+        //Some other cards
+        num Some Other Card Name [set_code] /n
+
+        /Sideboard
+        SB: num Some Sideboard Card Name [set_code] /n
+        SB: num Some Sideboard Card Name [set_code] /n
+        --------------------------------------
+
+        eg.
+        --------------------------------------
+        //Creatures (8)
+        1 Wild Mongrel [od]
+        4 Aquamoeba [od]
+        2 Werebear
+        noose constrictor
+
+        //Enchantments (1)
+        rancor [ULG]
+
+        //Sideboard (2)
+        SB: 2 Werebear
+        --------------------------------------
+
+        The cards can be structured in multiple ways. The options are:
+
+        'none': Just prints out every card without any comments and any grouping
+        'color': Groups the cards by their colors. Eg. under 'Colorless', 'Multicolor', 'Red', 'Blue', ...
+        'type': Groups the cards by their types. Eg. under 'Lands', 'Artifacts', 'Creatures', ...
+        'cmc': Groups the cards by their converted casting costs. Eg. under '1', '2', '3', ...
+
+        Args:
+            group_by (str): How the cards are grouped in the text file. Either 'none', 'color', 'type' or 'cmc'
+            add_set_codes (bool): If enabled, also the set codes are added after the card names.
+            file_path (str): The path to create the file to.
+        """
+        try:
+            with open(file_path, 'x') as f:
+                f.write(self.deck_str(group_by=group_by, add_set_codes=add_set_codes))
+
+        except (FileExistsError, IOError) as err:
+            print('Something went wrong with writing to the file: {}'.format(str(err)))
 
     def create_id_index(self):
         """Creates and returns a fast persistent index of the unique cards of this list as a BTree which works
