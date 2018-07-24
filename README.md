@@ -3,8 +3,7 @@
 mtgtools is a collection of tools for easy and convenient handling and downloading of Magic: The Gathering
 card and set data on your computer. The card and set data can be easily downloaded from **Scryfall** API 
 and/or **magicthegathering.io** API and it is saved in a ZODB - database, which is a native object database for Python. 
-Everything is simply in Python, so no knowledge of SQL is needed to work with the database. It is developed for the 
-purpose of creating new Magic: The Gathering content and software, research and just for fun.
+Everything is simply in Python, so no knowledge of SQL is needed to work with the database.
 
 ## Features
 
@@ -43,10 +42,6 @@ where as the faces in mtgio are separate cards.
 At the moment Scryfall has a more extensive database with more useful data like prices and purchase uris and also hosts 
 good quality card images, so in my opinion it is more useful of the two.
 
-Another difference between Scryfall and mtgio is that in mtgio API attribute names are in camelCase style. For the 
-purpose of consistency, the attributes in this software are transformed into snake_case which makes many of the
-attributes identical to the ones in Scryfall.
-
 ## Installing
 
 mtgtools can be simply installed with `pip install mtgtools`.
@@ -73,6 +68,11 @@ like '*' or 'X'. For convenience, the card objects will also contain numerical v
 these non-digit characters, the remaining numbers will be in the numerical version of the attribute. If nothing is left 
 after stripping, the numerical version will be 0.
 
+Another difference between Scryfall and mtgio is that in mtgio API attribute names are in camelCase style. For the 
+purpose of consistency, the attributes in this software are transformed into snake_case which makes many of the
+attributes identical to the ones in Scryfall. For example, the attribute `manaCost` from mtgio has been changed to 
+`mana_cost` which is the same as in Scryfall.
+
 For more information on what attributes cards have, read
 https://scryfall.com/docs/api/cards for Scryfall card objects and
 https://docs.magicthegathering.io/#api_v1cards_list for magicthegathering.io card objects.
@@ -92,11 +92,11 @@ Except for the usual in-place list methods like `extend`, `append` and `remove` 
 style, meaning that calling any of the other filtering or querying methods return new `PCardList` objects leaving the 
 original untouched.
 
-`PCardList` can also be used as a deck by adding cards to it's 'sideboard'. Having cards in the 'sideboard'
-changes some functionalities of the methods like 'deck_str' in which now also the sideboard cards are added. Images
+`PCardList` can also be used as a deck by adding cards to it's `sideboard`. Having cards in the sideboard
+changes some functionalities of the methods like `deck_str` in which now also the sideboard cards are added. Images
 are downloaded and proxies created for both the cards and the sideboard. However, Having  cards in the 'sideaboard'
-does not change the behaviour of the crucial internal methods like __len__, __getitem__ or __setitem__,
-so basically the cards in the 'sideboard' are a kind of an extra.
+does not change the behaviour of the crucial internal methods like `len`, `getitem` or `setitem`,
+so basically the cards in the sideboard are a kind of an extra.
 
 
 #### **PSet**
@@ -416,7 +416,7 @@ Card         Set   Type                          Cost     Rarity
 4 Werebear   ema   Creature - Human Bear Druid   {1}{G}   common
 ```
 
-###### Working with multifaced cards from Scryfall
+#### Working with multifaced cards from Scryfall
 
 As mentioned earlier, some cards in Scryfall have multiple faces. These are for example flip-cards like 
 '_Akki Lavarunner // Tok-Tok, Volcano Born_' and transform-cards like '_Accursed Witch // Infectious Curse_'. In some 
