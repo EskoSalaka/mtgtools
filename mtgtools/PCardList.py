@@ -1283,7 +1283,7 @@ class PCardList(Persistent):
 
         try:
             with open(file_path, 'r') as f:
-                return self.read_cards_from_str(f.read())
+                return self.from_str(f.read())
 
         except (IOError, FileNotFoundError):
             print('Something went wrong with reading file {}'.format(file_path))
