@@ -15,12 +15,12 @@ setuptools.setup(
     long_description_content_type="text/markdown",
     url="https://github.com/EskoSalaka/mtgtools",
     packages=['mtgtools'],
-    classifiers=(
+    classifiers=[
         "Programming Language :: Python :: 3.5",
         "License :: OSI Approved :: Zope Public License",
         "Operating System :: OS Independent",
         "Topic :: Software Development :: Libraries :: Python Modules"
-    ),
+    ],
     install_requires=[
         'ZODB',
     ],
