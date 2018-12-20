@@ -1,0 +1,7 @@
+0.9.0 --> 0.9.1
+- Fixed error "self.read_cards_from_str() does not exist" (wrong function name)
+- Fixed error with downloading images for certain cards with the double forward slash "//" in their 
+  names resulting to illegal filename. Now the double forward slash can be replaced by a given string
+
+- Improved handling paths for downloading images and creating proxy sheets with "pathlib"
+- Spellchecking

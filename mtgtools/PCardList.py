@@ -73,6 +73,7 @@ import random
 import re
 import warnings
 import uuid
+import pathlib
 
 from itertools import groupby
 from persistent.list import PersistentList
@@ -1084,10 +1085,10 @@ class PCardList(Persistent):
         The image format of the sheets can be specified with 'image_format' which can be anything supported by PIL. 
         By default it is set to 'jpeg'.
 
-        If no path is specified the image is downloaded to the current working directory. If the given
-        path is not found a new folder is created automatically. Paths should be specified in the format
-        'C:\\users\\Timmy\\some_folder\\'. The names for the proxy sheets can be specified with 'file_names' which will
-        name the sheets 'name1', 'name2', 'name3', etc.
+        If no path is specified, the image is downloaded to the current working directory. If the given
+        path is not found, a new folder is created automatically. Paths should be specified in the format
+        'C:\\users\\Timmy\\some_folder\\' or 'C:/users/Timmy/some_folder/' The names for the proxy sheets 
+        can be specified with 'file_names' which will name the sheets 'name1', 'name2', 'name3', etc.
 
         Note that the Pillow-image library is needed for creating printable proxies.
 
@@ -1105,7 +1106,17 @@ class PCardList(Persistent):
         except ImportError:
             print('The Pillow-image library is needed for creating printable proxies. Make sure you have it installed!')
             return
+        
+        path = pathlib.Path(dir_path)
 
+        try:
+            path.mkdir(exist_ok=True)
+        except FileExistsError:
+            print(
+                'The given path {} already exists and it is not a folder.'.format(str(path)))
+        
+
+        
         if dir_path and not os.path.exists(dir_path):
             os.makedirs(dir_path)
 
@@ -1127,14 +1138,14 @@ class PCardList(Persistent):
 
                     if y > 3 * image_height:
                         y = margins[1]
-                        page.save(fp=dir_path + file_names + str(pages) + '.' + image_format,
+                        page.save(fp=path / (file_names + str(pages) + '.' + image_format),
                                   format=image_format,
                                   quality=quality,
                                   dpi=(300, 300))
                         page = Image.new('RGB', (2480, 3508), 'white')
                         pages += 1
 
-            page.save(fp=dir_path + file_names + str(pages) + '.' + image_format, 
+            page.save(fp=path / (file_names + str(pages) + '.' + image_format), 
                       format=image_format, 
                       quality=quality, 
                       dpi=(300, 300))
@@ -1293,7 +1304,7 @@ class PCardList(Persistent):
         """Writes the cards in this list in a readable deck form in a file. The cards cannot be written in an existing
         file. The file path must be given in the format of "C:/Users/jhonny/Desktop/my_text_file.txt" where
         "my_text_file.txt" is the name of the file to be created. The function results in an error if the file already
-        exists or the path is invalid, eg. a path to a foolder.
+        exists or the path is invalid, eg. a path to a folder.
 
         Optionally the set code of the cards can be left out by setting 'add_set_codes' to False. If this card
         list has any cards in the sideboard, those will be added with the prefix 'SB:'.
