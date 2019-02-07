@@ -5,7 +5,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="mtgtools",
-    version="0.9.1",
+    version="0.9.2",
     author="Esko-Kalervo Salaka",
     author_email="esko.salaka@gmail.com",
     description="""Collection of tools for easy handling of Magic: The Gathering card and set 
