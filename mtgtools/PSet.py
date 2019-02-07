@@ -66,10 +66,7 @@
 # This software is in no way endorsed or promoted by Scryfall, Zope Foundation, magicthegathering.io or
 # Wizards of the Coast.
 ########################################################################################################################
-
-import datetime
 import json
-import uuid
 
 from persistent import Persistent
 from mtgtools.PCardList import PCardList

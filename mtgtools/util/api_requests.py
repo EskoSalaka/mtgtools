@@ -1,12 +1,10 @@
 import asyncio
 import concurrent.futures
-import json
 import math
 import sys
 import requests
 
 from urllib.error import URLError
-from urllib.request import Request, urlopen
 
 from mtgtools.PSet import PSet
 from mtgtools.PSetList import PSetList
