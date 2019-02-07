@@ -106,19 +106,22 @@ class PSetList(Persistent):
         self.id = uuid.uuid4()
 
     def __getitem__(self, item):
-        return self.sets.__getitem__(item)
+        if isinstance(item, int):
+            return self._sets.__getitem__(item)
+        else:
+            return PSetList(self._sets.__getitem__(item))
 
     def __setitem__(self, key, value):
-        self.sets.__setitem__(key, value)
+        self._sets.__setitem__(key, value)
 
     def __iter__(self):
-        return iter(self.sets)
+        return iter(self._sets)
 
     def __str__(self):
-        return str(self.sets)
+        return str(self._sets)
 
     def __repr__(self):
-        return repr(self.sets)
+        return repr(self._sets)
 
     def __add__(self, other):
         if isinstance(other, PSetList):

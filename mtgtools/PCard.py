@@ -553,7 +553,6 @@ class PCard(Persistent):
 
         try:
             path.mkdir(exist_ok=True)
-            print(path.absolute())
         except FileExistsError:
             print(
                 'The given path {} already exists and it is not a folder.'.format(str(path)))

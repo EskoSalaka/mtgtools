@@ -173,21 +173,12 @@ True
 Building the database from scratch from Scryfall and mtgio is simply done with
 
 ```
-my_db.full_update_from_scryfall()
-my_db.full_update_from_mtgio()
+my_db.scryfall_update()
+my_db.mtgio_update()
 ```
 
-The full update downloads and saves all new card and set data and also updates any changes to the existing data. This is
+The update downloads and saves all new card and set data and also updates any changes to the existing data. This is
 also useful when updating for example the price and legality attributes of the Scryfall cards which might often change.
-
-If you are looking to only download new cards from new sets, use
-
-```
-my_db.update_new_from_scryfall()
-my_db.update_new_from_mtgio()
-```
-
-This operation leaves existing objects untouched but it's a lot faster.
 
 Building the database from scratch takes about few minutes to complete and it is mostly affected by the API request
 limits which are 10 request per second for Scryfall and 5000 requests per hour for magicthegathering.io. About 10

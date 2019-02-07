@@ -123,6 +123,7 @@ class PSet(PCardList, Persistent):
         super().__init__(cards=cards)
 
         if 'scryfall_uri' in response_dict:
+            self.id = response_dict.get('id')
             self.code = response_dict.get('code')
             self.mtgo_code = response_dict.get('mtgo_code')
             self.name = response_dict.get('name')
@@ -153,9 +154,6 @@ class PSet(PCardList, Persistent):
             self.old_code = response_dict.get('oldCode')
             self.block = response_dict.get('block')
             self.online_only = response_dict.get('onlineOnly')
-
-        self.creation_date = datetime.datetime.now()
-        self.id = uuid.uuid4()
 
     def __hash__(self):
         return hash(self.name + self.code)

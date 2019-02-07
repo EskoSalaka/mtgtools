@@ -6,7 +6,8 @@ from mtgtools import MtgDB
 from mtgtools.PCardList import PCardList
 from mtgtools.PSetList import PSetList
 
-tool = MtgDB.MtgDB("mydata.fs")
+tool = MtgDB.MtgDB("testdb.fs")
+tool.scryfall_update()
 cards = tool.root.scryfall_cards
 sets = tool.root.scryfall_sets
 
@@ -70,6 +71,90 @@ testlist = other + tokens + creatures + non_basic_lands + \
 
 
 class TestPCardsListMethodsScryfall(unittest.TestCase):
+    def test_integrity(self):
+        tool.verify_scryfall_integrity()
+
+    def test_basic_update(self):
+        clean_db = MtgDB.MtgDB("clean_db.fs")
+        clean_db.scryfall_update()
+        clean_db.verify_scryfall_integrity()
+        clean_db.close()
+
+
+    def test_update_changed_sets(self):
+        clean_db = MtgDB.MtgDB("clean_db.fs")
+        c_set = clean_db.root.scryfall_sets[0]
+        c_cards = PCardList(c_set._cards)
+        c1_l = len(clean_db.root.scryfall_cards)
+        s1_l = len(clean_db.root.scryfall_sets)
+
+        c_set_code = c_set.code
+        c_set_name = c_set.name
+
+        c_set.code= 'xxxyyyy'
+        c_set.name = 'xxxyyyy'
+
+        self.assertTrue(c_set_code not in [pset.code for pset in clean_db.root.scryfall_sets])
+        self.assertTrue(c_set_name not in [pset.name for pset in clean_db.root.scryfall_sets])
+        self.assertTrue('xxxyyyy' in [pset.code for pset in clean_db.root.scryfall_sets])
+        self.assertTrue('xxxyyyy' in [pset.name for pset in clean_db.root.scryfall_sets])
+
+        clean_db.commit()
+        clean_db.scryfall_update()
+
+        self.assertTrue('xxxyyyy' not in [pset.code for pset in clean_db.root.scryfall_sets])
+        self.assertTrue('xxxyyyy' not in [pset.name for pset in clean_db.root.scryfall_sets])
+        self.assertTrue(c_set_code in [pset.code for pset in clean_db.root.scryfall_sets])
+        self.assertTrue(c_set_name in [pset.name for pset in clean_db.root.scryfall_sets])
+        self.assertEqual(c1_l, len(clean_db.root.scryfall_cards))
+        self.assertEqual(s1_l, len(clean_db.root.scryfall_sets))
+        self.assertTrue(clean_db.root.scryfall_sets.where_exactly(code=c_set_code)[0].has_all(c_cards))
+        self.assertEqual(len(clean_db.root.scryfall_sets.where_exactly(code=c_set_code)[0]), len(c_cards))
+
+        self.assertEqual(len(clean_db.root.scryfall_cards),
+                         sum([len(pset.cards) for pset in clean_db.root.scryfall_sets]))
+
+        for pset in clean_db.root.scryfall_sets:
+            self.assertEqual(len(pset.cards), pset.card_count)
+
+            for card in pset.cards:
+                self.assertEqual(card.set, pset.code)
+
+        clean_db.verify_scryfall_integrity()
+
+        clean_db.close()
+
+    def test_update_changed_cards(self):
+        clean_db = MtgDB.MtgDB("clean_db.fs")
+        c1_l = len(clean_db.root.scryfall_cards)
+        s1_l = len(clean_db.root.scryfall_sets)
+        c1 = clean_db.root.scryfall_cards[10000]
+        old_name = c1.name
+        old_code = c1.set
+        c1.name = "xxxyyyy"
+        c1.set = "xxxyyyy"
+
+        clean_db.commit()
+
+        clean_db.scryfall_update()
+        self.assertEqual(c1_l, len(clean_db.root.scryfall_cards))
+        self.assertEqual(s1_l, len(clean_db.root.scryfall_sets))
+        self.assertNotEqual(c1.name, "xxxyyyy")
+        self.assertNotEqual(c1.set, "xxxyyyy")
+        self.assertEqual(c1.name, old_name)
+        self.assertEqual(c1.set, old_code)
+
+        self.assertEqual(len(clean_db.root.scryfall_cards),
+                         sum([len(pset.cards) for pset in clean_db.root.scryfall_sets]))
+
+        for pset in clean_db.root.scryfall_sets:
+            self.assertEqual(len(pset.cards), pset.card_count)
+
+            for card in pset.cards:
+                self.assertEqual(card.set, pset.code)
+
+        clean_db.verify_scryfall_integrity()
+        clean_db.close()
 
     def test_basic(self):
         self.assertEqual(len(tokens + other), 24)
@@ -500,10 +585,16 @@ class TestPCardsListMethodsScryfall(unittest.TestCase):
         print(list1.json)
         print(list1.json)
 
-        def test_pretty_print_and_str(self):
-            cards.pprint()
-            print(cards.deck_str())
-            print(cards.json)
+    def test_pretty_print_and_str(self):
+        cards.pprint()
+        print(cards.deck_str())
+        print(cards.json)
+
+    def test_download_images(self):
+        testlist.download_images_from_scryfall(dir_path='test_images')
+
+    def test_proxies(self):
+        testlist.create_proxies(dir_path='test_images')
 
 
 if __name__ == '__main__':
