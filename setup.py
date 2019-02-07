@@ -1,9 +1,9 @@
-import setuptools
+from setuptools import setup, find_packages
 
 with open("README.md", "r") as fh:
     long_description = fh.read()
 
-setuptools.setup(
+setup(
     name="mtgtools",
     version="0.9.2",
     author="Esko-Kalervo Salaka",
@@ -14,7 +14,8 @@ setuptools.setup(
     KEYWORDS=["Magic: The Gathering", "Developer", "Scryfall", "mtg"],
     long_description_content_type="text/markdown",
     url="https://github.com/EskoSalaka/mtgtools",
-    packages=['mtgtools'],
+    packages=find_packages(exclude=("tests",)),
+    namespace_packages=['mtgtools'],
     classifiers=[
         "Programming Language :: Python :: 3.5",
         "License :: OSI Approved :: Zope Public License",
@@ -22,6 +23,6 @@ setuptools.setup(
         "Topic :: Software Development :: Libraries :: Python Modules"
     ],
     install_requires=[
-        'ZODB',
+        'ZODB', 'requests'
     ],
 )
