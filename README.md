@@ -29,6 +29,8 @@ which is a native object database for Python. Everything is simply in Python, so
 
 - **ZODB** - Can be installed with `pip install zodb`. More info in http://www.zodb.org/en/latest/.
 
+- **requests** - Can be installed with `pip install requests`. More info in https://pypi.org/project/requests/.
+
 - **PIL** - Not necessary, but needed for creating proxy image sheets. Can be installed with `pip install pillow`
 
 ## Scryfall vs magicthegathering.io
