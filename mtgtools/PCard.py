@@ -142,6 +142,7 @@ class PCard(Persistent):
         type_line               str
         oracle_text             str
         mana_cost               str
+        multiverse_ids          list[number]
         power                   str
         toughness               str
         loyalty                 str
@@ -187,6 +188,7 @@ class PCard(Persistent):
         image_uris              list[dict]
         uri                     str
         story_spotlight_uri     str
+        prices                  dict
 
         args:
             response_dict (str): A json response dictionary containing a set of attributes for the card object from.
@@ -223,6 +225,8 @@ class PCard(Persistent):
             self.tix = response_dict.get('tix')
             self.usd = response_dict.get('usd')
             self.usd = response_dict.get('usd')
+            self.multiverse_ids = response_dict.get('multiverse_ids')
+            self.prices = response_dict.get('prices')
 
             self.set = response_dict.get('set')
             self.set_name = response_dict.get('set_name')
