@@ -74,6 +74,7 @@ import ZODB
 import ZODB.FileStorage
 import transaction
 from warnings import warn
+from .util.decorators import deprecated
 
 from mtgtools.PSetList import PSetList
 from mtgtools.PCardList import PCardList
@@ -249,21 +250,22 @@ class MtgDB:
             update_str = '\rThe magicthegathering.io database is now up to date!\nElapsed time: {}'
             sys.stdout.write(update_str.format(datetime.timedelta(seconds=round(time.time()) - start)))
 
+    @deprecated("scryfall_update")
     def update_new_from_scryfall(self, verbose=True, workers=8):
         """deprecated"""
-        warn('This method is currently deprecated. The method "scryfall_update" is automatically called instead"')
-        self.scryfall_update(verbose=verbose, workers=workers)
+        pass
 
+    @deprecated("scryfall_update")
     def full_update_from_scryfall(self, verbose=True, workers=8):
         """deprecated"""
-        warn('This method is currently deprecated. The method "scryfall_update" is automatically called instead"')
-        self.scryfall_update(verbose=verbose, workers=workers)
+        pass
 
+    @deprecated("mtgio_update")
     def update_new_from_mtgio(self, verbose=True, workers=8):
         """deprecated"""
-        warn('This method is currently deprecated. The method "mtgio_update" is automatically called instead"')
-        self.mtgio_update(verbose=verbose, workers=workers)
+        pass
 
+    @deprecated("mtgio_update")
     def full_update_from_mtgio(self, verbose=True, workers=8):
         """deprecated"""
         warn('This method is currently deprecated. The method "mtgio_update" is automatically called instead"')

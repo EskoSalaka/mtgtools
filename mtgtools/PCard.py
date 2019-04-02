@@ -73,9 +73,13 @@ import time
 import urllib.request
 import warnings
 import pathlib
+import webbrowser
+
 from urllib.error import URLError
 from persistent import Persistent
+from PIL import Image
 
+from .util.decorators import scryfall_only
 
 class PCard(Persistent):
     """PCard is a simple persistent dataclass representing Magic: the Gathering cards with their characteristic
@@ -383,6 +387,8 @@ class PCard(Persistent):
         else:
             if val != attr:
                 return True
+    def __image_from_url(self, url):
+        return Image.open(io.BytesIO(urllib.request.urlopen(url).read()))
 
     def update(self, response_dict):
         for key, value in response_dict.items():
@@ -524,6 +530,7 @@ class PCard(Persistent):
 
         return True
 
+    @scryfall_only
     def download_image_from_scryfall(self, image_type='normal', dir_path='', replace_forwardlashes=' '):
         """Downloads the image for this card from Scryfall to a given directory with path 'dir_path'. Scryfall hosts
         6 types of image files and by default 'normal' sized images are downloaded. More information at:
@@ -543,11 +550,6 @@ class PCard(Persistent):
             dir_path (str): The path to the directory to download the image to.
             replace_forwardlashes (str): A string to replace forward slashes in certain card names.
         """
-        if self.api_type != 'scryfall':
-            print(
-                'Images can only be only downloaded for card objects from Scryfall api.')
-            return
-
         path = pathlib.Path(dir_path)
 
         try:
@@ -584,6 +586,29 @@ class PCard(Persistent):
                 str(self)))
             print(str(err))
 
+    @scryfall_only
+    def get_all_image_uris(self, image_type='normal'):
+        """
+        """
+
+        if self.image_uris and self.image_uris.get(image_type):
+            image_uri = self.image_uris.get(image_type)
+            return image_uri,
+
+        elif getattr(self, 'card_faces'):
+            image_uris = ()
+            for face in self.card_faces:
+                if face.get('image_uris') and face.get('image_uris').get(image_type):
+                    image_uri = face.get('image_uris').get(image_type)
+                    image_uris = image_uris + (image_uri,)
+
+            return image_uris
+        else:
+            warnings.warn(
+                'No image found for the card --{}--'.format(str(self)))
+
+
+    @scryfall_only
     def proxy_images(self, scaling_factor=1.0, image_type='normal'):
         """Returns a tuple of proxy images of the card as PIL Image objects. In most cases the card will have one single
         image and some cards (double-sided) will have two. By default the images will have size 745 × 1040 which is
@@ -605,52 +630,22 @@ class PCard(Persistent):
                 'small', 'normal' or 'large'.
 
         Returns:
-            tuple[PIL Image]: A suitable proxy images of the card as a PIL Image objects.
+            tuple[PIL Image]: Suitable proxy images of the card as a PIL Image objects.
         """
-        if self.api_type != 'scryfall':
-            print(
-                'Images can only be only downloaded for card objects from Scryfall api.')
-            return
 
-        try:
-            from PIL import Image
-        except ImportError:
-            print('The Pillow-image library is needed for creating printable proxies. Make sure you have it installed!')
-            return
+        return (image.resize((int(745 * scaling_factor), int(1040 * scaling_factor)), Image.ANTIALIAS)
+                for image in self.images())
 
-        try:
-            if self.image_uris and self.image_uris.get(image_type):
-                image = Image.open(io.BytesIO(urllib.request.urlopen(
-                    self.image_uris.get(image_type)).read()))
-                time.sleep(0.1)
-                image = image.resize((int(745 * scaling_factor),
-                                      int(1040 * scaling_factor)),
-                                     Image.ANTIALIAS)
-                return (image,)
+    @scryfall_only
+    def view(self, new=0, autoraise=True, image_type='normal'):
+        for image_uri in self.get_all_image_uris(image_type=image_type):
+            webbrowser.open(image_uri, new=new, autoraise=autoraise)
 
-            elif getattr(self, 'card_faces'):
-                images = ()
-                for face in self.card_faces:
-                    if face.get('image_uris') and face.get('image_uris').get(image_type):
-                        image_uri = face.get('image_uris').get(image_type)
-                        image = Image.open(io.BytesIO(
-                            urllib.request.urlopen(image_uri).read()))
-                        time.sleep(0.1)
-                        image = image.resize((int(745 * scaling_factor),
-                                              int(1040 * scaling_factor)),
-                                             Image.ANTIALIAS)
-                        images = images + (image,)
+    @scryfall_only
+    def images(self, image_type='normal'):
+        """"""
 
-                return images
-            else:
-                warnings.warn(
-                    'No image found for the card --{}--'.format(str(self)))
-                return
-
-        except URLError as err:
-            print('Something went wrong with downloading an image for {} from Scryfall: '.format(
-                str(self)))
-            print(str(err))
+        return tuple(self.__image_from_url(image_uri) for image_uri in self.get_all_image_uris(image_type))
 
     @property
     def api_type(self):
