@@ -21,3 +21,8 @@
 - For simplicity, the names of methods 'full_update_from_mtgio' and 'full_update_from_scryfall' have been changed to
   simpler 'mtgio_update' and 'scryfall_update'. Calling the old functions will just raise a warning and call the new
   functions, so any old code is not broken
+
+0.9.2 --> 0.9.3
+- Removed the eur, usd and tix fields
+- Added prices field which contains eur, usd and tix
+- Added multiverse_ids field
