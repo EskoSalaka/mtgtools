@@ -222,9 +222,6 @@ class PCard(Persistent):
             self.nonfoil = response_dict.get('nonfoil')
             self.oversized = response_dict.get('oversized')
             self.edhrec_rank = response_dict.get('edhrec_rank')
-            self.tix = response_dict.get('tix')
-            self.usd = response_dict.get('usd')
-            self.usd = response_dict.get('usd')
             self.multiverse_ids = response_dict.get('multiverse_ids')
             self.prices = response_dict.get('prices')
 
