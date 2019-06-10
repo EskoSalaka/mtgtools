@@ -1150,7 +1150,7 @@ class PCardList(Persistent):
                       quality=quality, 
                       dpi=(300, 300))
 
-    def from_str(self, card_list_str):
+    def from_str(self, card_list_str, **kwargs):
         """Reads a given card list string and returns a new list of all the cards of this list found in the string.
 
         The string should be given in the following format:
@@ -1193,6 +1193,7 @@ class PCardList(Persistent):
 
         Args:
             card_list_str (str): A string representing a list of cards.
+            **kwargs: Arguments to match with the attributes of every card in the list (see the documentation of where).
 
         Returns:
             PCardList: A new card list from the given card list string which belong in this card list.
@@ -1229,9 +1230,9 @@ class PCardList(Persistent):
 
                 try:
                     if set_code:
-                        card = self.where_exactly(name=name, set=set_code, search_all_faces=True)[0]
+                        card = self.where_exactly(name=name, set=set_code, search_all_faces=True, **kwargs)[0]
                     else:
-                        card = self.where_exactly(name=name, search_all_faces=True).random_card()
+                        card = self.where_exactly(name=name, search_all_faces=True, **kwargs).random_card()
 
                     if sb:
                         card_list.sideboard.extend([card for _ in range(num)])
@@ -1243,7 +1244,7 @@ class PCardList(Persistent):
 
         return card_list
 
-    def from_file(self, file_path):
+    def from_file(self, file_path, **kwargs):
         """Reads a card list string from a given text file and returns a new list of all the cards of this list
         found in the file.
 
@@ -1287,6 +1288,7 @@ class PCardList(Persistent):
 
         Args:
             file_path (str): A path to the file containing a list of cards to read.
+            **kwargs: Arguments to match with the attributes of every card in the list (see the documentation of where).
 
         Returns:
             PCardList: A card list from the given string.
@@ -1294,7 +1296,7 @@ class PCardList(Persistent):
 
         try:
             with open(file_path, 'r') as f:
-                return self.from_str(f.read())
+                return self.from_str(f.read(), **kwargs)
 
         except (IOError, FileNotFoundError):
             print('Something went wrong with reading file {}'.format(file_path))
