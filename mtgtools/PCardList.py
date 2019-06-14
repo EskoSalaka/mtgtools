@@ -1114,9 +1114,7 @@ class PCardList(Persistent):
         except FileExistsError:
             print(
                 'The given path {} already exists and it is not a folder.'.format(str(path)))
-        
 
-        
         if dir_path and not os.path.exists(dir_path):
             os.makedirs(dir_path)
 
@@ -1157,24 +1155,28 @@ class PCardList(Persistent):
 
         --------------------------------------
         //This is a comment
-        num Card Name [set_code] /n
-        num Card Name [set_code] /n
-        num Card Name [set_code] /n
+        num Card Name [set_code collector_number] /n
+        num Card Name [set_code collector_number] /n
+        num Card Name [set_code collector_number] /n
 
         //Some other cards
-        num Some Other Card Name [set_code] /n
+        num Some Other Card Name [set_code collector_number] /n
 
         /Sideboard
-        SB: Some Sideboard Card Name [set_code] /n
-        SB: Some Sideboard Card Name [set_code] /n
+        SB: Some Sideboard Card Name [set_code collector_number] /n
+        SB: Some Sideboard Card Name [set_code collector_number] /n
         --------------------------------------
 
-        The number of cards 'num' and the set code '[set_code]' or '(set_code)' are optional. Card names and set codes
+        The number of cards 'num' and the set code '[set_code]' or '(set_code)' along with the collector number are
+        optional. The collector number can only be specified after a valid set code. Card names and set codes
         are case-insensitive. Each card or cards must be on its own line and comments can only start in the beginning
         of lines. Cards found on lines starting with the prefix 'SB:' are added in the sideboard of the list.
 
         Lines from which no cards are found are ignored and if no card with the given set is found, a random card
         with the same name is returned.
+
+        Additionally, you can include any card-specific keyword arguments such as lang='en' which will only return
+        those matching cards.
 
         eg.
         --------------------------------------
@@ -1217,20 +1219,31 @@ class PCardList(Persistent):
                 name = name.strip()
 
                 if "(" in line and ")" in line:
-                    set_code = line[line.find('(') + 1:line.find(')')].strip()
+                    cl = line[line.find('(') + 1:line.find(')')].strip()
+                    set_code = cl.split()[0] if len(cl.split()) > 0 else None
+                    collector_number = cl.split()[1] if len(cl.split()) > 1 else None
                 elif "[" in line and "]" in line:
-                    set_code = line[line.find('[') + 1:line.find(']')].strip()
+                    cl = line[line.find('[') + 1:line.find(']')].strip()
+                    set_code = cl.split()[0] if len(cl.split()) > 0 else None
+                    collector_number = cl.split()[1] if len(cl.split()) > 1 else None
                 else:
                     set_code = None
 
                 if set_code and set_code not in set_codes:
                     msg = 'Could not find any matching {} API set code for the line --{}--'
                     warnings.warn(self.api_type, msg.format(self.api_type, line))
-                    set_code = ''
+                    set_code = None
 
                 try:
                     if set_code:
-                        card = self.where_exactly(name=name, set=set_code, search_all_faces=True, **kwargs)[0]
+                        if collector_number:
+                            card = self.where_exactly(name=name,
+                                                      set=set_code,
+                                                      search_all_faces=True,
+                                                      collector_number=collector_number,
+                                                      **kwargs)[0]
+                        else:
+                            card = self.where_exactly(name=name, set=set_code, search_all_faces=True, **kwargs)[0]
                     else:
                         card = self.where_exactly(name=name, search_all_faces=True, **kwargs).random_card()
 
@@ -1240,7 +1253,10 @@ class PCardList(Persistent):
                         card_list.extend(num * (PCardList() + card))
 
                 except IndexError:
-                    warnings.warn('Could not find any cards in this matching the line --{}--'.format(line))
+                    msg = """Could not find any cards matching the line --{}-- with given keyword arguments --{}--.
+                    This could possibly be because of a typo or because there are no cards matching the given keyword 
+                    arguments or collector number if any were specified."""
+                    warnings.warn(msg.format(line, list(kwargs.items())))
 
         return card_list
 
@@ -1252,24 +1268,28 @@ class PCardList(Persistent):
 
         --------------------------------------
         //This is a comment
-        num Card Name [set_code] /n
-        num Card Name [set_code] /n
-        num Card Name [set_code] /n
+        num Card Name [set_code collector_number] /n
+        num Card Name [set_code collector_number] /n
+        num Card Name [set_code collector_number] /n
 
         //Some other cards
-        num Some Other Card Name [set_code] /n
+        num Some Other Card Name [set_code collector_number] /n
 
         /Sideboard
-        SB: Some Sideboard Card Name [set_code] /n
-        SB: Some Sideboard Card Name [set_code] /n
+        SB: Some Sideboard Card Name [set_code collector_number] /n
+        SB: Some Sideboard Card Name [set_code collector_number] /n
         --------------------------------------
 
-        The number of cards 'num' and the set code '[set_code]' or '(set_code)' are optional. Card names and set codes
+        The number of cards 'num' and the set code '[set_code]' or '(set_code)' along with the collector number are
+        optional. The collector number can only be specified after a valid set code. Card names and set codes
         are case-insensitive. Each card or cards must be on its own line and comments can only start in the beginning
         of lines. Cards found on lines starting with the prefix 'SB:' are added in the sideboard of the list.
 
         Lines from which no cards are found are ignored and if no card with the given set is found, a random card
         with the same name is returned.
+
+        Additionally, you can include any card-specific keyword arguments such as lang='en' which will only return
+        those matching cards.
 
         eg.
         --------------------------------------
