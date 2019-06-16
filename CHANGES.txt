@@ -26,3 +26,8 @@
 - Removed the eur, usd and tix fields
 - Added prices field which contains eur, usd and tix
 - Added multiverse_ids field
+
+0.9.2 --> 0.9.3
+- Added the ability to include any card-specific keyword arguments such as lang='en' for reading cards from decklists
+  which will only return those matching cards.
+- Added the ability to specify the collector number of the card when reading cards from decklists

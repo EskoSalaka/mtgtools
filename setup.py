@@ -5,7 +5,7 @@ with open("README.md", "r") as fh:
 
 setup(
     name="mtgtools",
-    version="0.9.3",
+    version="0.9.40",
     author="Esko-Kalervo Salaka",
     author_email="esko.salaka@gmail.com",
     description="Collection of tools for easy handling of Magic: The Gathering card and set data on your computer from Scryfall and/or magicthegathering.io.",
