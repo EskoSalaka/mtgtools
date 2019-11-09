@@ -163,6 +163,7 @@ class PCard(Persistent):
         set_name                str
         collector_number        str
         highres_image           bool
+        promo                   bool
         printed_name            str
         printed_type_line       str
         printed_text            str
@@ -233,6 +234,7 @@ class PCard(Persistent):
             self.image_uris = response_dict.get('image_uris')
             self.purchase_uris = response_dict.get('purchase_uris')
             self.highres_image = response_dict.get('highres_image')
+            self.promo = response_dict.get('promo')
             self.printed_name = response_dict.get('printed_name')
             self.printed_type_line = response_dict.get('printed_type_line')
             self.printed_text = response_dict.get('printed_text')
@@ -285,6 +287,7 @@ class PCard(Persistent):
             self.release_date = response_dict.get('releaseDate')
             self.starter = response_dict.get('starter')
             self.printings = response_dict.get('printings')
+            self.promo = None
             self.original_text = response_dict.get('originalText')
             self.original_type = response_dict.get('originalType')
             self.source = response_dict.get('source')
