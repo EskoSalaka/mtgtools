@@ -31,3 +31,6 @@
 - Added the ability to include any card-specific keyword arguments such as lang='en' for reading cards from decklists
   which will only return those matching cards.
 - Added the ability to specify the collector number of the card when reading cards from decklists
+
+0.9.4 --> 0.9.5
+- Added the 'promo' and 'promo_types' attributes for scryfall cards

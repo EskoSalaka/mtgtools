@@ -164,6 +164,7 @@ class PCard(Persistent):
         collector_number        str
         highres_image           bool
         promo                   bool
+        promo_types             list[string]
         printed_name            str
         printed_type_line       str
         printed_text            str
@@ -195,7 +196,6 @@ class PCard(Persistent):
             response_dict (str): A json response dictionary containing a set of attributes for the card object from.
                 Tne response dict can be from either Scryfall of magicthegathering.io API.
     """
-
     def __init__(self, response_dict):
         if 'scryfall_uri' in response_dict:
             self.id = response_dict.get('id')
@@ -235,6 +235,7 @@ class PCard(Persistent):
             self.purchase_uris = response_dict.get('purchase_uris')
             self.highres_image = response_dict.get('highres_image')
             self.promo = response_dict.get('promo')
+            self.promo_types = response_dict.get('promo_types')
             self.printed_name = response_dict.get('printed_name')
             self.printed_type_line = response_dict.get('printed_type_line')
             self.printed_text = response_dict.get('printed_text')
@@ -287,7 +288,6 @@ class PCard(Persistent):
             self.release_date = response_dict.get('releaseDate')
             self.starter = response_dict.get('starter')
             self.printings = response_dict.get('printings')
-            self.promo = None
             self.original_text = response_dict.get('originalText')
             self.original_type = response_dict.get('originalType')
             self.source = response_dict.get('source')
@@ -528,7 +528,10 @@ class PCard(Persistent):
 
         return True
 
-    def download_image_from_scryfall(self, image_type='normal', dir_path='', replace_forwardlashes=' '):
+    def download_image_from_scryfall(self,
+                                     image_type='normal',
+                                     dir_path='',
+                                     replace_forwardlashes=' '):
         """Downloads the image for this card from Scryfall to a given directory with path 'dir_path'. Scryfall hosts
         6 types of image files and by default 'normal' sized images are downloaded. More information at:
         https://scryfall.com/docs/api/images.
@@ -549,7 +552,8 @@ class PCard(Persistent):
         """
         if self.api_type != 'scryfall':
             print(
-                'Images can only be only downloaded for card objects from Scryfall api.')
+                'Images can only be only downloaded for card objects from Scryfall api.'
+            )
             return
 
         path = pathlib.Path(dir_path)
@@ -557,35 +561,39 @@ class PCard(Persistent):
         try:
             path.mkdir(exist_ok=True)
         except FileExistsError:
-            print(
-                'The given path {} already exists and it is not a folder.'.format(str(path)))
+            print('The given path {} already exists and it is not a folder.'.
+                  format(str(path)))
 
         try:
             if self.image_uris and self.image_uris.get(image_type):
                 name = self.name.replace(' // ', replace_forwardlashes)
 
                 if image_type == 'png':
-                    urllib.request.urlretrieve(self.image_uris.get(
-                        image_type), path / (name + '.png'))
+                    urllib.request.urlretrieve(self.image_uris.get(image_type),
+                                               path / (name + '.png'))
                     time.sleep(0.1)
                 else:
-                    urllib.request.urlretrieve(self.image_uris.get(
-                        image_type), path / (name + '.jpg'))
+                    urllib.request.urlretrieve(self.image_uris.get(image_type),
+                                               path / (name + '.jpg'))
                     time.sleep(0.1)
 
             elif getattr(self, 'card_faces'):
                 for face in self.card_faces:
-                    if face.get('image_uris') and face.get('image_uris').get(image_type):
-                        urllib.request.urlretrieve(face.get('image_uris').get(image_type),
-                                                   path / (face.get('name') + '.jpg'))
+                    if face.get('image_uris') and face.get('image_uris').get(
+                            image_type):
+                        urllib.request.urlretrieve(
+                            face.get('image_uris').get(image_type),
+                            path / (face.get('name') + '.jpg'))
                         time.sleep(0.1)
             else:
                 warnings.warn(
-                    'No image of the format --{}-- found for the card --{}--'.format(image_type, str(self)))
+                    'No image of the format --{}-- found for the card --{}--'.
+                    format(image_type, str(self)))
 
         except URLError as err:
-            print('Something went wrong with downloading an image for {} from Scryfall: '.format(
-                str(self)))
+            print(
+                'Something went wrong with downloading an image for {} from Scryfall: '
+                .format(str(self)))
             print(str(err))
 
     def proxy_images(self, scaling_factor=1.0, image_type='normal'):
@@ -613,47 +621,55 @@ class PCard(Persistent):
         """
         if self.api_type != 'scryfall':
             print(
-                'Images can only be only downloaded for card objects from Scryfall api.')
+                'Images can only be only downloaded for card objects from Scryfall api.'
+            )
             return
 
         try:
             from PIL import Image
         except ImportError:
-            print('The Pillow-image library is needed for creating printable proxies. Make sure you have it installed!')
+            print(
+                'The Pillow-image library is needed for creating printable proxies. Make sure you have it installed!'
+            )
             return
 
         try:
             if self.image_uris and self.image_uris.get(image_type):
-                image = Image.open(io.BytesIO(urllib.request.urlopen(
-                    self.image_uris.get(image_type)).read()))
+                image = Image.open(
+                    io.BytesIO(
+                        urllib.request.urlopen(
+                            self.image_uris.get(image_type)).read()))
                 time.sleep(0.1)
-                image = image.resize((int(745 * scaling_factor),
-                                      int(1040 * scaling_factor)),
-                                     Image.ANTIALIAS)
-                return (image,)
+                image = image.resize(
+                    (int(745 * scaling_factor), int(1040 * scaling_factor)),
+                    Image.ANTIALIAS)
+                return (image, )
 
             elif getattr(self, 'card_faces'):
                 images = ()
                 for face in self.card_faces:
-                    if face.get('image_uris') and face.get('image_uris').get(image_type):
+                    if face.get('image_uris') and face.get('image_uris').get(
+                            image_type):
                         image_uri = face.get('image_uris').get(image_type)
-                        image = Image.open(io.BytesIO(
-                            urllib.request.urlopen(image_uri).read()))
+                        image = Image.open(
+                            io.BytesIO(
+                                urllib.request.urlopen(image_uri).read()))
                         time.sleep(0.1)
-                        image = image.resize((int(745 * scaling_factor),
-                                              int(1040 * scaling_factor)),
+                        image = image.resize((int(
+                            745 * scaling_factor), int(1040 * scaling_factor)),
                                              Image.ANTIALIAS)
-                        images = images + (image,)
+                        images = images + (image, )
 
                 return images
             else:
-                warnings.warn(
-                    'No image found for the card --{}--'.format(str(self)))
+                warnings.warn('No image found for the card --{}--'.format(
+                    str(self)))
                 return
 
         except URLError as err:
-            print('Something went wrong with downloading an image for {} from Scryfall: '.format(
-                str(self)))
+            print(
+                'Something went wrong with downloading an image for {} from Scryfall: '
+                .format(str(self)))
             print(str(err))
 
     @property
@@ -665,4 +681,7 @@ class PCard(Persistent):
 
     @property
     def json(self):
-        return json.dumps(self, default=lambda o: o.__dict__, sort_keys=True, indent=4)
+        return json.dumps(self,
+                          default=lambda o: o.__dict__,
+                          sort_keys=True,
+                          indent=4)

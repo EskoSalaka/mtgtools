@@ -18,3 +18,4 @@ tests/testdb.fs.lock
 tests/testdb.fs.old
 tests/testdb.fs.tmp
 tests/tests.py
+.vscode/settings.json
