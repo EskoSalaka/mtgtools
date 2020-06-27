@@ -31,8 +31,6 @@ def process_card_page_response(card_page_uri, data_identifier, headers=None):
     if response_json:
         if data_identifier in response_json:
             return [PCard(card_json) for card_json in response_json[data_identifier]]
-        else:
-            print(card_page_uri)
     return []
 
 def get_tot_mtgio_cards():
