@@ -29,7 +29,7 @@ def process_card_page_response(card_page_uri, data_identifier, headers=None):
     response_json =  get_response_json(card_page_uri, headers)
 
     if response_json:
-        return [PCard(card_json) for card_json in get_response_json(card_page_uri, headers)[data_identifier]]
+        return [PCard(card_json) for card_json in response_json[data_identifier]]
     else:
         return []
 
