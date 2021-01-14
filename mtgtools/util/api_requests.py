@@ -26,12 +26,12 @@ def get_response_json(url, headers=None):
 
 
 def process_card_page_response(card_page_uri, data_identifier, headers=None):
-    response_json =  get_response_json(card_page_uri, headers)
+    response_json = get_response_json(card_page_uri, headers)
 
     if response_json:
-        return [PCard(card_json) for card_json in get_response_json(card_page_uri, headers)[data_identifier]]
-    else:
-        return []
+        if data_identifier in response_json:
+            return [PCard(card_json) for card_json in response_json[data_identifier]]
+    return []
 
 def get_tot_mtgio_cards():
     try:
@@ -118,7 +118,6 @@ def process_scryfall_cards(sets, cards, verbose=True, workers=8):
     for current_set in sets:
         card_page_uris.extend([scryfall_card_search_url.format(page, current_set.code) for page in
                                range(1, int(math.ceil(current_set.card_count / 175)) + 1)])
-
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
     loop.run_until_complete(process_cards(sets, cards, card_page_uris, 'data', verbose=verbose, workers=workers))
