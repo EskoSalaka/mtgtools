@@ -191,6 +191,8 @@ class PCard(Persistent):
         uri                     str
         story_spotlight_uri     str
         prices                  dict
+        arena_id                str
+        booster                 bool
 
         args:
             response_dict (str): A json response dictionary containing a set of attributes for the card object from.
@@ -257,6 +259,8 @@ class PCard(Persistent):
             self.colorshifted = response_dict.get('colorshifted')
             self.futureshifted = response_dict.get('futureshifted')
             self.lang = response_dict.get('lang')
+            self.arena_id = response_dict.get('arena_id')
+            self.booster = response_dict.get('booster')
 
         else:
             self.name = response_dict.get('name')
