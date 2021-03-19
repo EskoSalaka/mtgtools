@@ -115,7 +115,9 @@ def process_mtgio_cards(sets, cards, verbose=True, workers=8):
 
 def process_scryfall_cards(sets, cards, verbose=True, workers=8):
     card_page_uris = []
-    for current_set in sets:
+
+    incomplete_sets = [_set for _set in sets if _set.card_count != len(_set.cards)]
+    for current_set in incomplete_sets:
         card_page_uris.extend([scryfall_card_search_url.format(page, current_set.code) for page in
                                range(1, int(math.ceil(current_set.card_count / 175)) + 1)])
     loop = asyncio.new_event_loop()
