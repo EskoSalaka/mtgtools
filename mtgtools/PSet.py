@@ -123,11 +123,13 @@ class PSet(PCardList, Persistent):
             self.id = response_dict.get('id')
             self.code = response_dict.get('code')
             self.mtgo_code = response_dict.get('mtgo_code')
+            self.tcgplayer_id = response_dict.get('tcgplayer_id')
             self.name = response_dict.get('name')
             self.uri = response_dict.get('uri')
             self.scryfall_uri = response_dict.get('scryfall_uri')
             self.search_uri = response_dict.get('search_uri')
             self.set_type = response_dict.get('set_type')
+            self.printed_size = response_dict.get('printed_size')
             self.released_at = response_dict.get('released_at')
             self.block_code = response_dict.get('block_code')
             self.block = response_dict.get('block')
@@ -135,6 +137,7 @@ class PSet(PCardList, Persistent):
             self.card_count = response_dict.get('card_count')
             self.digital = response_dict.get('digital')
             self.foil_only = response_dict.get('foil_only')
+            self.nonfoil_only = response_dict.get('nonfoil_only')
             self.icon_svg_uri = response_dict.get('icon_svg_uri')
 
         else:

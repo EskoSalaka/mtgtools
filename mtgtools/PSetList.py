@@ -396,20 +396,28 @@ class PSetList(Persistent):
         pp_str += '\n'
 
         format_str = '{name:{w1}s}   {code:{w2}s}   {block:{w3}s}   {type:{w4}s}   {cards}\n'
-        pp_str += format_str.format(name='Set', w1=longest_name,
-                                    code='Code', w2=longest_code,
-                                    block='Block', w3=longest_block,
-                                    type='Type', w4=longest_type,
+        pp_str += format_str.format(name='Set',
+                                    w1=longest_name,
+                                    code='Code',
+                                    w2=longest_code,
+                                    block='Block',
+                                    w3=longest_block,
+                                    type='Type',
+                                    w4=longest_type,
                                     cards='Cards')
         pp_str += '-' * (longest_name + longest_type + longest_block + longest_code + 17)
         pp_str += '\n'
 
         for pset in self.sets:
             format_str = '{name:{w1}s}   {code:{w2}s}   {block:{w3}s}   {type:{w4}s}   {cards}\n'
-            pp_str += format_str.format(name=pset.name, w1=longest_name,
-                                        code=pset.code, w2=longest_code,
-                                        block=pset.block if pset.block else '', w3=longest_block,
-                                        type=getattr(pset, 'set_type', getattr(pset, 'type', '')), w4=longest_type,
+            pp_str += format_str.format(name=pset.name,
+                                        w1=longest_name,
+                                        code=pset.code,
+                                        w2=longest_code,
+                                        block=pset.block if pset.block else '',
+                                        w3=longest_block,
+                                        type=getattr(pset, 'set_type', getattr(pset, 'type', '')),
+                                        w4=longest_type,
                                         cards=len(pset))
 
         return pp_str
@@ -452,4 +460,3 @@ class PSetList(Persistent):
             self._sets = PersistentList()
         else:
             raise TypeError
-
