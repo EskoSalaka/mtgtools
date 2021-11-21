@@ -77,8 +77,8 @@ from warnings import warn
 
 from mtgtools.PSetList import PSetList
 from mtgtools.PCardList import PCardList
-from .util.api_requests import process_scryfall_cards, process_scryfall_sets, get_tot_mtgio_cards, process_mtgio_sets,\
-    process_mtgio_cards
+from .util.api_requests import process_scryfall_cards, process_scryfall_sets, get_tot_mtgio_cards, process_mtgio_sets, \
+    process_mtgio_cards, get_scryfall_card_bulks, download_scryfall_bulk_data, process_cards_bulk
 
 
 class MtgDB:
@@ -148,7 +148,7 @@ class MtgDB:
             self.root.mtgio_sets = PSetList()
 
     def scryfall_update(self, verbose=True, workers=8):
-        """Completely updates the database from magicthegathering.io downloading new sets and cards and also
+        """Completely updates the database from scryfall downloading new sets and cards and also
         updating the current objects if there are any changes.
 
         Args:
@@ -180,6 +180,79 @@ class MtgDB:
 
         # Update cards
         process_scryfall_cards(current_sets, current_cards, verbose=verbose, workers=workers)
+
+        # Transfer cards from obsolete sets to new ones
+        for obsolete_set in obsolete_sets:
+            cards = obsolete_set.cards
+            if cards:
+                pset = current_sets.where_exactly(code=cards[0].set)
+                if len(pset):
+                    pset[0].extend(cards)
+
+        if verbose:
+            sys.stdout.write('\rSaving and committing...')
+
+        transaction.commit()
+        self.database.pack()
+
+        if verbose:
+            update_str = '\rThe Scryfall database is now up to date! \nElapsed time: {}'
+            sys.stdout.write(update_str.format(datetime.timedelta(seconds=round(time.time()) - start)))
+
+    def scryfall_bulk_update(self, bulk_type="default_cards", verbose=True):
+        """Completely updates the database from scryfall downloading new sets and cards and also
+        updating the current objects if there are any changes. The sets are downloaded from the
+        API as usual but the cards are downloaded from bulk data provided by scryfall.
+        
+        The bulk data currently contains 4 different kinds of datasets of cards: 'oracle_cards', 'unique_artwork',
+        'default_cards' or 'all_cards'.
+
+        Args:
+            bulk_type (str): Which type of bulk data downloaded, either 'oracle_cards', 'unique_artwork',
+                'default_cards' or 'all_cards'
+            verbose (bool): If enabled, prints out progression messages during the updating process.
+        """
+        start = round(time.time())
+
+        current_sets = self.root.scryfall_sets
+        current_cards = self.root.scryfall_cards
+        old_set_count = len(current_sets)
+
+        if verbose:
+            print('Attempting to update all the data from bulk...')
+            print('querying Scryfall API for sets...')
+
+        # Update sets and check for obsolete sets
+        obsolete_sets = process_scryfall_sets(current_sets)
+
+        if verbose:
+            print('querying Scryfall API for bulk data...')
+
+        scryfall_card_bulks = get_scryfall_card_bulks()['data']
+        bulk_type_data = next((bulk for bulk in scryfall_card_bulks if bulk['type'] == bulk_type), None)
+
+        if verbose:
+            print('-----------------------------------------------------------------------------------------------')
+            print('Selected bulk type: "%s":  %s' % (bulk_type, bulk_type_data['description']))
+            print('Updated at: %s ' % bulk_type_data['updated_at'])
+            print('Size: %s MB' % round(int(bulk_type_data['compressed_size']) / 1024**2))
+            print('-----------------------------------------------------------------------------------------------')
+            print("Downloading bulk data...")
+
+        bulk_card_data = download_scryfall_bulk_data(bulk_type_data['download_uri'])
+        tot_new_cards = len(bulk_card_data) - len(current_cards)
+        tot_new_sets = len(current_sets) + len(obsolete_sets) - old_set_count
+
+        if verbose:
+            print('Found a total of {} new sets and {} new cards'.format(tot_new_sets, tot_new_cards))
+            print('Processing bulk data and updating cards.')
+            print('-----------------------------------------------------------------------------------------------')
+
+        if tot_new_cards < 0:
+            print('Looks like the selected bulk data type contains less cards than what are currently in your')
+            print('database, you probably want to select unique_artwork, default_cards or all_cards to update from.')
+
+        process_cards_bulk(current_sets, current_cards, bulk_card_data, verbose)
 
         # Transfer cards from obsolete sets to new ones
         for obsolete_set in obsolete_sets:
@@ -345,7 +418,3 @@ class MtgDB:
             assert card in sets.where_exactly(code=card.set)[0].cards
 
         print("If no errors were encountered then your database should be fine!")
-
-
-
-

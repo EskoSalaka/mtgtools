@@ -34,3 +34,8 @@
 
 0.9.4 --> 0.9.5
 - Added the 'promo' and 'promo_types' attributes for scryfall cards
+
+0.9.5 --> 0.9.6
+- Fixed a Scryfall updating error
+- Added a bulk update option for Scryfall
+- Added many new attributes for scryfall cards and sets

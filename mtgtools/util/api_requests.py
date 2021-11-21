@@ -16,6 +16,8 @@ mtgio_cards_page_url = 'https://api.magicthegathering.io/v1/cards?page={}'
 
 scryfall_sets_url = 'https://api.scryfall.com/sets'
 scryfall_card_search_url = 'https://api.scryfall.com/cards/search?include_extras=true&order=set&page={}&q=e%3A{}&unique=prints'
+scryfall_bulk_data_url = 'https://api.scryfall.com/bulk-data'
+
 
 def get_response_json(url, headers=None):
     try:
@@ -23,6 +25,14 @@ def get_response_json(url, headers=None):
     except URLError as err:
         print('Warning: Something went wrong with requesting url {}: '.format(url) + str(err))
         return {}
+
+
+def get_scryfall_card_bulks(headers=None):
+    return get_response_json(scryfall_bulk_data_url, headers)
+
+
+def download_scryfall_bulk_data(url, headers=None):
+    return get_response_json(url, headers)
 
 
 def process_card_page_response(card_page_uri, data_identifier, headers=None):
@@ -33,12 +43,14 @@ def process_card_page_response(card_page_uri, data_identifier, headers=None):
             return [PCard(card_json) for card_json in response_json[data_identifier]]
     return []
 
+
 def get_tot_mtgio_cards():
     try:
         return int(requests.get(mtgio_cards_url, headers={'User-Agent': 'Mozilla/5.0'}).headers.get('Total-Count'))
     except URLError as err:
         print('Something went wrong with requesting url {}: '.format(mtgio_cards_url) + str(err))
         return 0
+
 
 def process_scryfall_sets(current_sets):
     current_set_codes = [pset.code for pset in current_sets]
@@ -72,6 +84,7 @@ def process_scryfall_sets(current_sets):
 
     return obsolete_sets
 
+
 def process_mtgio_sets(sets):
     current_set_codes = [pset.code for pset in sets]
     set_response_dicts = get_response_json(mtgio_sets_url, headers={'User-Agent': 'Mozilla/5.0'})['sets']
@@ -104,6 +117,7 @@ def process_mtgio_sets(sets):
 
     return obsolete_sets
 
+
 def process_mtgio_cards(sets, cards, verbose=True, workers=8):
     pages = int(math.ceil(get_tot_mtgio_cards() / 100))
     card_page_uris = [mtgio_cards_page_url.format(page) for page in range(1, pages + 1)]
@@ -112,6 +126,7 @@ def process_mtgio_cards(sets, cards, verbose=True, workers=8):
     asyncio.set_event_loop(loop)
     loop.run_until_complete(process_cards(sets, cards, card_page_uris, 'cards', verbose=verbose, workers=workers))
     loop.close()
+
 
 def process_scryfall_cards(sets, cards, verbose=True, workers=8):
     card_page_uris = []
@@ -157,3 +172,26 @@ async def process_cards(sets, cards, card_page_uris, data_identifier, verbose=Tr
             processed += 1
             if verbose:
                 sys.stdout.write('\rProcessing responses: [{} / {}]'.format(processed, tot_requests))
+
+
+def process_cards_bulk(sets, cards, bulk_card_data, verbose=True):
+    card_index = cards.create_id_index()
+    set_index = {pset.code: pset for pset in sets}
+    tot_cards = len(bulk_card_data)
+
+    processed = 0
+    for card_json in bulk_card_data:
+        if card_json['id'] not in card_index:
+            processed_card = PCard(card_json)
+            cards.append(processed_card)
+
+            # Check for set not found
+            pset = set_index.get(processed_card.set)
+            if pset is not None:
+                pset._cards.append(processed_card)
+        else:
+            card_index[card_json['id']].update(card_json)
+
+        processed += 1
+        if verbose:
+            sys.stdout.write('\rProcessing card: [{} / {}]'.format(processed, tot_cards))

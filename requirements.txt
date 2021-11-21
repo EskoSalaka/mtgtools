@@ -1,0 +1,6 @@
+requests~=2.22.0
+persistent~=4.5.1
+ZODB~=5.5.1
+transaction~=3.0.0
+BTrees~=4.6.1
+setuptools~=42.0.1

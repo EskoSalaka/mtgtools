@@ -7,7 +7,7 @@ from mtgtools.PCardList import PCardList
 from mtgtools.PSetList import PSetList
 
 tool = MtgDB.MtgDB("testdb.fs")
-tool.scryfall_update()
+tool.scryfall_bulk_update()
 cards = tool.root.scryfall_cards
 sets = tool.root.scryfall_sets
 
@@ -76,10 +76,9 @@ class TestPCardsListMethodsScryfall(unittest.TestCase):
 
     def test_basic_update(self):
         clean_db = MtgDB.MtgDB("clean_db.fs")
-        clean_db.scryfall_update()
+        clean_db.scryfall_bulk_update()
         clean_db.verify_scryfall_integrity()
         clean_db.close()
-
 
     def test_update_changed_sets(self):
         clean_db = MtgDB.MtgDB("clean_db.fs")

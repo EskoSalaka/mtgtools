@@ -5,7 +5,7 @@ with open("README.md", "r") as fh:
 
 setup(
     name="mtgtools",
-    version="0.9.50",
+    version="0.9.60",
     author="Esko-Kalervo Salaka",
     author_email="esko.salaka@gmail.com",
     description=
@@ -22,5 +22,5 @@ setup(
         "Operating System :: OS Independent",
         "Topic :: Software Development :: Libraries :: Python Modules"
     ],
-    install_requires=['ZODB', 'requests'],
+    install_requires=['ZODB', 'requests', 'PIL'],
 )
