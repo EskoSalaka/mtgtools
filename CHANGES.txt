@@ -39,3 +39,5 @@
 - Fixed a Scryfall updating error
 - Added a bulk update option for Scryfall
 - Added many new attributes for scryfall cards and sets
+- Fixed an error with an incorrect warnings.warn parameter when reading
+  a decklist from string
