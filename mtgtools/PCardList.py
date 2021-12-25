@@ -75,6 +75,7 @@ import warnings
 import uuid
 import pathlib
 
+from textwrap import dedent
 from itertools import groupby
 from persistent.list import PersistentList
 from persistent import Persistent
@@ -1231,7 +1232,7 @@ class PCardList(Persistent):
 
                 if set_code and set_code not in set_codes:
                     msg = 'Could not find any matching {} API set code for the line --{}--'
-                    warnings.warn(self.api_type, msg.format(self.api_type, line))
+                    warnings.warn(msg.format(self.api_type, line))
                     set_code = None
 
                 try:
@@ -1253,10 +1254,12 @@ class PCardList(Persistent):
                         card_list.extend(num * (PCardList() + card))
 
                 except IndexError:
-                    msg = """Could not find any cards matching the line --{}-- with given keyword arguments --{}--.
-                    This could possibly be because of a typo or because there are no cards matching the given keyword 
-                    arguments or collector number if any were specified."""
-                    warnings.warn(msg.format(line, list(kwargs.items())))
+                    msg = """
+                    Could not find any cards matching the line --{}-- with given keyword arguments --{}--.
+                    This could possibly be because of a typo, the card doesn't exist in the given set or 
+                    because there are no cards matching the given keyword arguments or collector number if any were specified
+                    """
+                    warnings.warn(dedent(msg.format(line, list(kwargs.items()))))
 
         return card_list
 
