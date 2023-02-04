@@ -22,5 +22,5 @@ setup(
         "Operating System :: OS Independent",
         "Topic :: Software Development :: Libraries :: Python Modules"
     ],
-    install_requires=['ZODB', 'requests', 'PIL'],
+    install_requires=['ZODB', 'requests', 'Pillow'],
 )
