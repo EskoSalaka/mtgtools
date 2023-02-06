@@ -555,16 +555,24 @@ class PCardList(Persistent):
         """
         return PCardList(list(set(self.cards)))
 
+    def of_type(self, card_type: str, **kwargs):
+        """Returns a new list which only contains the card_type of this list.
+
+        Returns:
+            PCardList: A new list of cards containing only the card_type cards.
+        """
+        if self.api_type == 'scryfall':
+            return self.where(type_line=card_type, **kwargs)
+        else:
+            return self.where(type=[card_type], **kwargs)
+
     def creatures(self):
         """Returns a new list which only contains the creatures of this list.
 
         Returns:
             PCardList: A new list of cards containing only the creature cards.
         """
-        if self.api_type == 'scryfall':
-            return self.where(type_line='creature')
-        else:
-            return self.where(type=['creature'])
+        return self.of_type('creature')
 
     def artifacts(self):
         """Returns a new list which only contains the artifacts of this list.
@@ -572,10 +580,7 @@ class PCardList(Persistent):
         Returns:
             PCardList: A new list of cards containing only the artifact cards.
         """
-        if self.api_type == 'scryfall':
-            return self.where(type_line='artifact')
-        else:
-            return self.where(type=['artifact'])
+        return self.of_type('artifact')
 
     def instants(self):
         """Returns a new list which only contains the instants of this list.
@@ -583,10 +588,7 @@ class PCardList(Persistent):
         Returns:
             PCardList: A new list of cards containing only the instant cards.
         """
-        if self.api_type == 'scryfall':
-            return self.where(type_line='instant')
-        else:
-            return self.where(type=['instant'])
+        return self.of_type('instant')
 
     def sorceries(self):
         """Returns a new list which only contains the sorceries of this list.
@@ -594,10 +596,7 @@ class PCardList(Persistent):
         Returns:
             PCardList: A new list of cards containing only the sorcery cards.
         """
-        if self.api_type == 'scryfall':
-            return self.where(type_line='sorcery')
-        else:
-            return self.where(type=['sorcery'])
+        return self.of_type('sorcery')
 
     def planeswalkers(self):
         """Returns a new list which only contains the planeswalkers of this list.
@@ -605,10 +604,7 @@ class PCardList(Persistent):
         Returns:
             PCardList: A new list of cards containing only the planeswalker cards.
         """
-        if self.api_type == 'scryfall':
-            return self.where(type_line='planeswalker')
-        else:
-            return self.where(type=['planeswalker'])
+        return self.of_type('planeswalker')
 
     def enchantments(self):
         """Returns a new list which only contains the enchantments of this list.
@@ -616,10 +612,7 @@ class PCardList(Persistent):
         Returns:
             PCardList: A new list of cards containing only the enchantment cards.
         """
-        if self.api_type == 'scryfall':
-            return self.where(type_line='enchantment')
-        else:
-            return self.where(type=['enchantment'])
+        return self.of_type('enchantment')
 
     def noncreatures(self):
         """Returns a new list which only contains the noncreatures of this list.
@@ -627,10 +620,7 @@ class PCardList(Persistent):
         Returns:
             PCardList: A new list of cards containing only the noncreature cards.
         """
-        if self.api_type == 'scryfall':
-            return self.where(type_line='creature', invert=True)
-        else:
-            return self.where(type=['creature'], invert=True)
+        return self.of_type('creature', invert=True)
 
     def lands(self):
         """Returns a new list which only contains the lands of this list.
@@ -638,10 +628,7 @@ class PCardList(Persistent):
         Returns:
             PCardList: A new list of cards containing only the land cards.
         """
-        if self.api_type == 'scryfall':
-            return self.where(type_line='land')
-        else:
-            return self.where(type='land')
+        return self.of_type('land')
 
     def basic_lands(self):
         """Returns a new list which only contains the basic lands of this list.
@@ -649,10 +636,7 @@ class PCardList(Persistent):
         Returns:
             PCardList: A new list of cards containing only the basic land cards.
         """
-        if self.api_type == 'scryfall':
-            return self.where(type_line='basic land')
-        else:
-            return self.where(type='basic land')
+        return self.of_type('basic land')
 
     def converted_mana_cost(self):
         """Returns the converted mana cost of the list.
