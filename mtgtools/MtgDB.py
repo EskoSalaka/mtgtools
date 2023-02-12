@@ -235,7 +235,7 @@ class MtgDB:
             print('-----------------------------------------------------------------------------------------------')
             print('Selected bulk type: "%s":  %s' % (bulk_type, bulk_type_data['description']))
             print('Updated at: %s ' % bulk_type_data['updated_at'])
-            print('Size: %s MB' % round(int(bulk_type_data['compressed_size']) / 1024**2))
+            print('Size: %s MB' % round(int(bulk_type_data['size']) / 1024**2))
             print('-----------------------------------------------------------------------------------------------')
             print("Downloading bulk data...")
 
