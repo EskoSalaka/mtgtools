@@ -117,12 +117,35 @@ class MtgDB:
 
     For information on how to query lists, check PCardList and PSetList documentation.
 
+    The database uses a ZODB.FileStorage.FileStorage implementation to save the data locally. The arguments of MtgDB
+    equal the ones for ZODB.FileStorage.FileStorage. You can for example set MtgDB('my_db.fs', read_only=True) to
+    set the database as read_only. You can find the whole documentation here:
+    https://zodb.org/en/latest/_modules/ZODB/FileStorage/FileStorage.html
+
     Args:
-        storage_path (str): A path to a ZODB storage to open. If no storage is found, a new one is created.
+        file_name: str: A path to a ZODB storage to open. If no storage is found, a new one is created.
+
+    Keyword Args:
+        create: bool = False : Flag indicating whether a file should be created even if it already exists.
+        read_only: bool = False : Flag indicating whether the file is read only. Only one process is able to open the
+        file non-read-only.
+        stop: bytes = None : Time-travel transaction id When the file is opened, data will be read up to the given
+        transaction id. Transaction ids correspond to times and you can compute transaction ids for a given time using
+        quota: int = None : File-size quota
+        pack_gc: bool = True : Flag indicating whether garbage collection should be performed when packing.
+        pack_keep_old: bool = True : flag indicating whether old data files should be retained after packing as a
+        ``.old`` file.
+        packer: Any = None : An alternative
+        blob_dir: str : A blob-directory path name. Blobs will be supported if this option is provided.
     """
 
-    def __init__(self, storage_path):
-        self.storage = ZODB.FileStorage.FileStorage(storage_path)
+    def __init__(self, file_name, create=False, read_only=False, stop=None,
+                 quota=None, pack_gc=True, pack_keep_old=True, packer=None,
+                 blob_dir=None):
+        self.storage = ZODB.FileStorage.FileStorage(file_name, create=create, read_only=read_only, stop=stop,
+                                                    quota=quota, pack_gc=pack_gc, pack_keep_old=pack_keep_old,
+                                                    packer=packer,
+                                                    blob_dir=blob_dir)
         self.database = ZODB.DB(self.storage)
         self.connection = self.database.open()
         self.root = self.connection.root
@@ -235,7 +258,7 @@ class MtgDB:
             print('-----------------------------------------------------------------------------------------------')
             print('Selected bulk type: "%s":  %s' % (bulk_type, bulk_type_data['description']))
             print('Updated at: %s ' % bulk_type_data['updated_at'])
-            print('Size: %s MB' % round(int(bulk_type_data['size']) / 1024**2))
+            print('Size: %s MB' % round(int(bulk_type_data['size']) / 1024 ** 2))
             print('-----------------------------------------------------------------------------------------------')
             print("Downloading bulk data...")
 
