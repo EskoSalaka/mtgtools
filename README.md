@@ -170,7 +170,7 @@ True
 Building the database from scratch from Scryfall and mtgio is simply done with
 
 ```
-my_db.scryfall_update()
+my_db.scryfall_bulk_update()
 my_db.mtgio_update()
 ```
 

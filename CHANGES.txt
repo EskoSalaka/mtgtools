@@ -42,5 +42,8 @@
 - Fixed an error with an incorrect warnings.warn parameter when reading
   a decklist from string
 
+ 0.9.62 --> 0.9.63
+ - Fixed an issue where scryfall_bulk_update fails because of an incorrect attribute name
+
 0.9.6 --> 0.9.7
 - Included all the ZODB.FileStorage.FileStorage keyword arguments in MtgDB
