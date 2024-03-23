@@ -975,6 +975,14 @@ guidance. You can for example create random booster packs from card lists with `
 Scryfall with `download_images_from_scryfall`, create sheets of proxy images of cards from Scryfall with
 `create_proxies`, turn your lists back to JSON with `json` and many more things.
 
+## Database Storage
+
+The database uses a `ZODB.FileStorage.FileStorage` implementation to save the data locally. The arguments of MtgDB
+equal the ones for `ZODB.FileStorage.FileStorage`. You can for example set `MtgDB('my_db.fs', read_only=True)` to
+set the database as `read_only`. 
+
+You can find the whole documentation here: https://zodb.org/en/latest/_modules/ZODB/FileStorage/FileStorage.html
+
 ## Notes and possible problems
 
 #### Possible bugs
