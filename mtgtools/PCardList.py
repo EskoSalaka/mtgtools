@@ -243,7 +243,7 @@ class PCardList(Persistent):
         Args:
             card (PCard): The card object to be searched.
         """
-        self._cards.index(card)
+        return self._cards.index(card)
 
     def clear(self):
         """Clears te cards in this list."""
@@ -275,7 +275,7 @@ class PCardList(Persistent):
         Args:
             index (int): An index to remove a card object from.
         """
-        self._cards.pop(index)
+        return self._cards.pop(index)
 
     def count(self, card):
         """Returns the number of given card objects in this list. Cards are considered same if they have the same id.
