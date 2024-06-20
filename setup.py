@@ -5,7 +5,7 @@ with open("README.md", "r") as fh:
 
 setup(
     name="mtgtools",
-    version="0.9.70",
+    version="0.9.71",
     author="Esko-Kalervo Salaka",
     author_email="esko.salaka@gmail.com",
     description=
