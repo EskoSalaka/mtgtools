@@ -47,3 +47,6 @@
 
 0.9.6 --> 0.9.7
 - Included all the ZODB.FileStorage.FileStorage keyword arguments in MtgDB
+
+0.9.7 --> 0.9.71
+- The 'index' and 'pop' methods of PCardList now return correct values
