@@ -1062,7 +1062,9 @@ class PCardList(Persistent):
         if self.api_type != 'scryfall':
             raise TypeError('Images can only be only downloaded for card objects from Scryfall api.')
 
-        for card in self.cards + self.sideboard:
+        uniques = PCardList(self.cards + self.sideboard).unique_cards()
+
+        for card in uniques:
             card.download_image_from_scryfall(image_type=image_type, dir_path=dir_path)
 
     def create_proxies(self, scaling_factor=1.0, margins=(130, 130), cut_space=True,
