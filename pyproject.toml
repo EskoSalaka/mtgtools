@@ -1,0 +1,26 @@
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "mtgtools"
+version = "0.9.72"
+description = "Collection of tools for easy handling of Magic: The Gathering card and set data on your computer from Scryfall and/or magicthegathering.io."
+readme = "README.md"
+requires-python = ">=3.6"
+license-files = ["LICENSE.txt"]
+authors = [{ name = "Esko-Kalervo Salaka", email = "esko.salaka@gmail.com" }]
+keywords = ["Magic: The Gathering", "Developer", "Scryfall", "mtg"]
+classifiers = [
+  "Programming Language :: Python :: 3.6",
+  "License :: OSI Approved :: Zope Public License",
+  "Operating System :: OS Independent",
+  "Topic :: Software Development :: Libraries :: Python Modules",
+]
+dependencies = ["ZODB", "requests", "Pillow"]
+
+[project.urls]
+Homepage = "https://github.com/EskoSalaka/mtgtools"
+
+[tool.setuptools]
+packages = ["mtgtools", "mtgtools.util"]

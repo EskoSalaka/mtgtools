@@ -50,3 +50,10 @@
 
 0.9.7 --> 0.9.71
 - The 'index' and 'pop' methods of PCardList now return correct values
+
+0.9.71 --> 0.9.72
+- Added a slight optimization for downloading the images of a PCardList
+- Fixed some reduntant namespace logic which caused the app to break with a newer version of setuptools
+- Fixed downloads from Scryfall by including appropriate headers for the requests.
+  The Scryfall update-methods now accept a User-Agent parameter, which by default is
+  the name and the version number of the app.
