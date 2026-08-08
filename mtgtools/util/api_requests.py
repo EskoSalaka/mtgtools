@@ -1,10 +1,11 @@
 import asyncio
 import concurrent.futures
+import gzip
+import io
+import json
 import math
 import sys
 import requests
-
-from urllib.error import URLError
 
 from mtgtools.PSet import PSet
 from mtgtools.PSetList import PSetList
@@ -21,10 +22,16 @@ scryfall_bulk_data_url = 'https://api.scryfall.com/bulk-data'
 
 def get_response_json(url, headers=None):
     try:
-        return requests.get(url, headers=headers).json()
-    except URLError as err:
-        print('Warning: Something went wrong with requesting url {}: '.format(url) + str(err))
-        return {}
+        res = requests.get(url, headers=headers)
+        res.raise_for_status()
+
+        return res.json()
+    except requests.exceptions.RequestException as err:
+        print('Warning: Something went wrong with requesting url {}: '.format(url) + str(err.response.content))
+        raise err
+    except requests.exceptions.JSONDecodeError as err:
+        print('Warning: Something went wrong with parsing response from url {}: '.format(url) + str(err))
+        raise err
 
 
 def get_scryfall_card_bulks(headers=None):
@@ -33,6 +40,26 @@ def get_scryfall_card_bulks(headers=None):
 
 def download_scryfall_bulk_data(url, headers=None):
     return get_response_json(url, headers)
+
+
+def download_scryfall_bulk_data_gzip(url, headers=None):
+    try:
+        res = requests.get(url, headers=headers)
+        res.raise_for_status()
+        return res.content
+    except requests.exceptions.RequestException as err:
+        print('Warning: Something went wrong with requesting url {}: '.format(url) + str(err))
+        raise err
+
+
+def parse_scryfall_jsonl_gzip(gzip_bytes):
+    bulk_card_data = []
+    with gzip.GzipFile(fileobj=io.BytesIO(gzip_bytes), mode='rb') as gz_file:
+        for line in gz_file:
+            line = line.decode('utf-8').strip()
+            if line:
+                bulk_card_data.append(json.loads(line))
+    return bulk_card_data
 
 
 def process_card_page_response(card_page_uri, data_identifier, headers=None):
@@ -47,14 +74,14 @@ def process_card_page_response(card_page_uri, data_identifier, headers=None):
 def get_tot_mtgio_cards():
     try:
         return int(requests.get(mtgio_cards_url, headers={'User-Agent': 'Mozilla/5.0'}).headers.get('Total-Count'))
-    except URLError as err:
+    except requests.exceptions.RequestException as err:
         print('Something went wrong with requesting url {}: '.format(mtgio_cards_url) + str(err))
         return 0
 
 
-def process_scryfall_sets(current_sets):
+def process_scryfall_sets(current_sets, headers=None):
     current_set_codes = [pset.code for pset in current_sets]
-    set_response_dicts = get_response_json(scryfall_sets_url)['data']
+    set_response_dicts = get_response_json(scryfall_sets_url, headers)['data']
 
     for set_response_dict in set_response_dicts:
         if set_response_dict['code'] in current_set_codes:
