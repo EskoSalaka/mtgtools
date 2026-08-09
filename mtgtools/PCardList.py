@@ -1044,7 +1044,7 @@ class PCardList(Persistent):
 
         return pp_str
 
-    def download_images_from_scryfall(self, image_type='normal', dir_path=''):
+    def download_images_from_scryfall(self, image_type='normal', dir_path='', overwrite=True):
         """Downloads all the of this list's cards from Scryfall to a given directory with path 'dir_path'. Scryfall
         hosts 6 types of image  files and by default 'normal' sized images are downloaded. More information at:
         https://scryfall.com/docs/api/images.
@@ -1054,10 +1054,16 @@ class PCardList(Persistent):
         'C:\\users\\Timmy\\...' and the image file names will be the card names, eq. 'Wild Mongrel.jpg'. Specifying 
         wrong kind of paths might lead to undefined behaviour or errors.
 
+        The 'overwrite' argument specifies whether to overwrite the images if they already exists in the given path. 
+        Otherwise the image will be saved as 'Card Name (1).jpg', 'Card Name (2).jpg' etc. It is set to True by 
+        default.
+
         Args:
             image_type (str): A type or size of image to download. Either 'png', 'border_crop', 'art_crop', 'small',
             'normal' or 'large'.
             dir_path (str): The path to the directory to download the images to.
+            overwrite (bool): Wether to overwrite a downloaded image if it already exists in the given path. If 
+            False, the image will be saved as 'Card Name (1).jpg', 'Card Name (2).jpg' etc.
         """
         if self.api_type != 'scryfall':
             raise TypeError('Images can only be only downloaded for card objects from Scryfall api.')
@@ -1065,7 +1071,7 @@ class PCardList(Persistent):
         uniques = PCardList(self.cards + self.sideboard).unique_cards()
 
         for card in uniques:
-            card.download_image_from_scryfall(image_type=image_type, dir_path=dir_path)
+            card.download_image_from_scryfall(image_type=image_type, dir_path=dir_path, overwrite=overwrite)
 
     def create_proxies(self, scaling_factor=1.0, margins=(130, 130), cut_space=True,
                        quality=75, dir_path='', image_format='jpeg', file_names='proxies'):
@@ -1165,7 +1171,7 @@ class PCardList(Persistent):
         //Some other cards
         num Some Other Card Name [set_code collector_number] /n
 
-        /Sideboard
+        //Sideboard
         SB: Some Sideboard Card Name [set_code collector_number] /n
         SB: Some Sideboard Card Name [set_code collector_number] /n
         --------------------------------------

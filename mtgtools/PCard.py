@@ -69,6 +69,7 @@
 
 import io
 import json
+import os
 import time
 import urllib.request
 import warnings
@@ -560,10 +561,16 @@ class PCard(Persistent):
     def download_image_from_scryfall(self,
                                      image_type='normal',
                                      dir_path='',
-                                     replace_forwardlashes=' '):
+                                     replace_forwardlashes=' ',
+                                     overwrite=True):
         """Downloads the image for this card from Scryfall to a given directory with path 'dir_path'. Scryfall hosts
         6 types of image files and by default 'normal' sized images are downloaded. More information at:
-        https://scryfall.com/docs/api/images.
+        https://scryfall.com/docs/api/images. 
+        
+        The name of the images will by default be the name of the card with the file extension '.jpg', '.png' or '.WEBP' 
+        depending on the image type. The 'overwrite' argument specifies whether to overwrite the image if it 
+        already exists in the given path. Otherwise the image will be saved as 'Card Name (1).jpg', 
+        'Card Name (2).jpg' etc. It is set to True by default.
 
         If no path is specified the image is downloaded to the current working directory. If the given path is not
         found a new folder is created automatically. Paths should be specified in the format
@@ -578,6 +585,8 @@ class PCard(Persistent):
             'normal' or 'large'.
             dir_path (str): The path to the directory to download the image to.
             replace_forwardlashes (str): A string to replace forward slashes in certain card names.
+            overwrite (bool): Wether to overwrite a downloaded image if it already exists in the given path. If 
+            False, the image will be saved as 'Card Name (1).jpg', 'Card Name (2).jpg' etc.
         """
         if self.api_type != 'scryfall':
             print(
@@ -586,6 +595,7 @@ class PCard(Persistent):
             return
 
         path = pathlib.Path(dir_path)
+        file_type = 'png' if image_type == 'png' else 'jpg' if image_type in ['border_crop', 'art_crop', 'small', 'normal', 'large'] else 'WEBP'
 
         try:
             path.mkdir(exist_ok=True)
@@ -596,23 +606,30 @@ class PCard(Persistent):
         try:
             if self.image_uris and self.image_uris.get(image_type):
                 name = self.name.replace(' // ', replace_forwardlashes)
+                file_path = path / (name + '.' + file_type)
 
-                if image_type == 'png':
-                    urllib.request.urlretrieve(self.image_uris.get(image_type),
-                                               path / (name + '.png'))
-                    time.sleep(0.1)
-                else:
-                    urllib.request.urlretrieve(self.image_uris.get(image_type),
-                                               path / (name + '.jpg'))
-                    time.sleep(0.1)
+                if not overwrite and os.path.exists(file_path):
+                    i = 1
+                    while os.path.exists(file_path):
+                        file_path = path / (name + ' (' + str(i) + ').' + file_type)
+                        i += 1
 
+                urllib.request.urlretrieve(self.image_uris.get(image_type), file_path)
+                time.sleep(0.1)
+            
             elif getattr(self, 'card_faces'):
                 for face in self.card_faces:
-                    if face.get('image_uris') and face.get('image_uris').get(
-                            image_type):
-                        urllib.request.urlretrieve(
-                            face.get('image_uris').get(image_type),
-                            path / (face.get('name') + '.jpg'))
+                    if face.get('image_uris') and face.get('image_uris').get(image_type):
+                        name = face.get('name')
+                        file_path = path / (name + '.' + file_type)
+
+                        if not overwrite and os.path.exists(file_path):
+                            i = 1
+                            while os.path.exists(file_path):
+                                file_path = path / (name + ' (' + str(i) + ').' + file_type)
+                                i += 1
+
+                        urllib.request.urlretrieve(face.get('image_uris').get(image_type), file_path)
                         time.sleep(0.1)
             else:
                 warnings.warn(

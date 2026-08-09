@@ -60,3 +60,5 @@
 - 'art_series' cards are now correctly filtered by the normal_playable_cards method of PCardList
 - Removed the deprecated Image.ANTIALIAS from image.resize in card proxy images. The default resampling 
   algorithm in Pillow for image resizing is 'bicubic', which should be the best for graphics images
+- Added the 'overwrite' parameter to image download methods from scryfall. Setting overwite=False now
+  renames duplicate card (name) image files like "Card Name (1).jpg",  "Card Name (2).jpg" etc.
