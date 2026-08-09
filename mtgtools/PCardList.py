@@ -527,7 +527,7 @@ class PCardList(Persistent):
             PCardList: A new list of cards with all the special non-playable cards removed.
         """
         if self.api_type == 'scryfall':
-            non_playable_layouts = ['vanguard', 'scheme', 'planar', 'emblem', 'token', 'double_faced_token']
+            non_playable_layouts = ['vanguard', 'scheme', 'planar', 'emblem', 'token', 'double_faced_token', 'art_series']
             return self.filtered(lambda card: card.layout not in non_playable_layouts)
         else:
             non_playable_layouts = ['token', 'plane', 'scheme', 'phenomenon', 'vanguard', 'conspiracy']
