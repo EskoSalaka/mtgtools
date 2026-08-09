@@ -25,7 +25,7 @@ a native object database for Python. Everything is simply in Python, so no knowl
 
 ## Requirements
 
-- **Python 3.5** - mtgtools is tested on Python 3.5 but will probably also work on later versions
+- **Python 3.7** - mtgtools should work with any Python 3.7+ version with the latest versions of the dependencies. It might also work on earlier versions of Python 3.
 
 - **ZODB** - Can be installed with `pip install zodb`. More info at http://www.zodb.org/en/latest/.
 
@@ -68,7 +68,7 @@ like '\*' or 'X'. For convenience, the card objects will also contain numerical 
 these non-digit characters, the remaining numbers will be in the numerical version of the attribute. If nothing is left
 after stripping, the numerical version will be 0.
 
-Another difference between Scryfall and mtgio is that in mtgio API attribute names are in camelCase style. For consistency, 
+Another difference between Scryfall and mtgio is that in mtgio API attribute names are in camelCase style. For consistency,
 the attributes in this software are transformed into snake_case which makes many of the
 attributes identical to the ones in Scryfall. For example, the attribute `manaCost` from mtgio has been changed to
 `mana_cost`, which is the same as in Scryfall.
@@ -979,7 +979,7 @@ Scryfall with `download_images_from_scryfall`, create sheets of proxy images of 
 
 The database uses a `ZODB.FileStorage.FileStorage` implementation to save the data locally. The arguments of MtgDB
 equal the ones for `ZODB.FileStorage.FileStorage`. You can for example set `MtgDB('my_db.fs', read_only=True)` to
-set the database as `read_only`. 
+set the database as `read_only`.
 
 You can find the whole documentation here: https://zodb.org/en/latest/_modules/ZODB/FileStorage/FileStorage.html
 
