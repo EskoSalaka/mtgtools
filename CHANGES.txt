@@ -57,3 +57,4 @@
 - Fixed downloads from Scryfall by including appropriate headers for the requests.
   The Scryfall update-methods now accept a User-Agent parameter, which by default is
   the name and the version number of the app.
+- 'art_series' cards are now correctly filtered by the normal_playable_cards method of PCardList
