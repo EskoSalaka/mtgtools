@@ -669,9 +669,7 @@ class PCard(Persistent):
                         urllib.request.urlopen(
                             self.image_uris.get(image_type)).read()))
                 time.sleep(0.1)
-                image = image.resize(
-                    (int(745 * scaling_factor), int(1040 * scaling_factor)),
-                    Image.ANTIALIAS)
+                image = image.resize((int(745 * scaling_factor), int(1040 * scaling_factor)))
                 return (image, )
 
             elif getattr(self, 'card_faces'):
@@ -684,9 +682,7 @@ class PCard(Persistent):
                             io.BytesIO(
                                 urllib.request.urlopen(image_uri).read()))
                         time.sleep(0.1)
-                        image = image.resize((int(
-                            745 * scaling_factor), int(1040 * scaling_factor)),
-                                             Image.ANTIALIAS)
+                        image = image.resize((int(745 * scaling_factor), int(1040 * scaling_factor)))
                         images = images + (image, )
 
                 return images

@@ -58,3 +58,5 @@
   The Scryfall update-methods now accept a User-Agent parameter, which by default is
   the name and the version number of the app.
 - 'art_series' cards are now correctly filtered by the normal_playable_cards method of PCardList
+- Removed the deprecated Image.ANTIALIAS from image.resize in card proxy images. The default resampling 
+  algorithm in Pillow for image resizing is 'bicubic', which should be the best for graphics images
