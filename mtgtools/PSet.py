@@ -119,41 +119,41 @@ class PSet(PCardList, Persistent):
     def __init__(self, response_dict, cards=None):
         super().__init__(cards=cards)
 
-        if 'scryfall_uri' in response_dict:
-            self.id = response_dict.get('id')
-            self.code = response_dict.get('code')
-            self.mtgo_code = response_dict.get('mtgo_code')
-            self.tcgplayer_id = response_dict.get('tcgplayer_id')
-            self.name = response_dict.get('name')
-            self.uri = response_dict.get('uri')
-            self.scryfall_uri = response_dict.get('scryfall_uri')
-            self.search_uri = response_dict.get('search_uri')
-            self.set_type = response_dict.get('set_type')
-            self.printed_size = response_dict.get('printed_size')
-            self.released_at = response_dict.get('released_at')
-            self.block_code = response_dict.get('block_code')
-            self.block = response_dict.get('block')
-            self.parent_set_code = response_dict.get('parent_set_code')
-            self.card_count = response_dict.get('card_count')
-            self.digital = response_dict.get('digital')
-            self.foil_only = response_dict.get('foil_only')
-            self.nonfoil_only = response_dict.get('nonfoil_only')
-            self.icon_svg_uri = response_dict.get('icon_svg_uri')
+        if "scryfall_uri" in response_dict:
+            self.id = response_dict.get("id")
+            self.code = response_dict.get("code")
+            self.mtgo_code = response_dict.get("mtgo_code")
+            self.tcgplayer_id = response_dict.get("tcgplayer_id")
+            self.name = response_dict.get("name")
+            self.uri = response_dict.get("uri")
+            self.scryfall_uri = response_dict.get("scryfall_uri")
+            self.search_uri = response_dict.get("search_uri")
+            self.set_type = response_dict.get("set_type")
+            self.printed_size = response_dict.get("printed_size")
+            self.released_at = response_dict.get("released_at")
+            self.block_code = response_dict.get("block_code")
+            self.block = response_dict.get("block")
+            self.parent_set_code = response_dict.get("parent_set_code")
+            self.card_count = response_dict.get("card_count")
+            self.digital = response_dict.get("digital")
+            self.foil_only = response_dict.get("foil_only")
+            self.nonfoil_only = response_dict.get("nonfoil_only")
+            self.icon_svg_uri = response_dict.get("icon_svg_uri")
 
         else:
-            self.code = response_dict.get('code')
-            self.name = response_dict.get('name')
-            self.type = response_dict.get('type')
-            self.border = response_dict.get('border')
-            self.mkm_id = response_dict.get('mkm_id')
-            self.mkm_name = response_dict.get('mkm_name')
-            self.release_date = response_dict.get('releaseDate')
-            self.gatherer_code = response_dict.get('gathererCode')
-            self.magic_cards_info_code = response_dict.get('magicCardsInfoCode')
-            self.booster = response_dict.get('booster')
-            self.old_code = response_dict.get('oldCode')
-            self.block = response_dict.get('block')
-            self.online_only = response_dict.get('onlineOnly')
+            self.code = response_dict.get("code")
+            self.name = response_dict.get("name")
+            self.type = response_dict.get("type")
+            self.border = response_dict.get("border")
+            self.mkm_id = response_dict.get("mkm_id")
+            self.mkm_name = response_dict.get("mkm_name")
+            self.release_date = response_dict.get("releaseDate")
+            self.gatherer_code = response_dict.get("gathererCode")
+            self.magic_cards_info_code = response_dict.get("magicCardsInfoCode")
+            self.booster = response_dict.get("booster")
+            self.old_code = response_dict.get("oldCode")
+            self.block = response_dict.get("block")
+            self.online_only = response_dict.get("onlineOnly")
 
     def __hash__(self):
         return hash(self.name + self.code)
@@ -173,10 +173,10 @@ class PSet(PCardList, Persistent):
             return 1
 
     def __str__(self):
-        return self.name + '(' + self.code + ')'
+        return self.name + "(" + self.code + ")"
 
     def __repr__(self):
-        return self.name + '(' + self.code + ')'
+        return self.name + "(" + self.code + ")"
 
     def update(self, response_dict):
         for key, value in response_dict.items():
@@ -196,7 +196,7 @@ class PSet(PCardList, Persistent):
 
         Examples:
         """
-        for (key, val) in kwargs.items():
+        for key, val in kwargs.items():
             attr = getattr(self, key, None)
 
             if attr:
@@ -224,7 +224,7 @@ class PSet(PCardList, Persistent):
         Returns:
             bool: True if all of the given keyword arguments match completely and False otherwise.
         """
-        for (key, val) in kwargs.items():
+        for key, val in kwargs.items():
             attr = getattr(self, key, None)
 
             if attr:
@@ -242,7 +242,7 @@ class PSet(PCardList, Persistent):
 
         return True
 
-    def download_images_from_scryfall(self, image_type='normal', dir_path=''):
+    def download_images_from_scryfall(self, image_type="normal", dir_path=""):
         """Downloads all the of this set's images from Scryfall to a directory with given path 'dir_path. Scryfall hosts
         6 types of image files and by default 'normal' sized images are downloaded. More information at:
         https://scryfall.com/docs/api/images.
@@ -260,9 +260,9 @@ class PSet(PCardList, Persistent):
         """
 
         if not dir_path:
-            super().download_images_from_scryfall(image_type=image_type, dir_path=self.code + '\\')
+            super().download_images_from_scryfall(image_type=image_type, dir_path=self.code + "\\")
         else:
-            super().download_images_from_scryfall(image_type=image_type, dir_path=dir_path + self.code + '\\')
+            super().download_images_from_scryfall(image_type=image_type, dir_path=dir_path + self.code + "\\")
 
     def jprint(self):
         """Pretty-prints the json representation of this object."""
@@ -272,6 +272,6 @@ class PSet(PCardList, Persistent):
     @property
     def json(self):
         json_dict = dict(self.__dict__)
-        json_dict['cards'] = [card.__dict__ for card in self.cards]
+        json_dict["cards"] = [card.__dict__ for card in self.cards]
 
         return json.dumps(json_dict, sort_keys=True, indent=4)

@@ -91,7 +91,7 @@ class PSetList(Persistent):
         name (str): Name of the set list.
     """
 
-    def __init__(self, sets=None, name=''):
+    def __init__(self, sets=None, name=""):
         if isinstance(sets, PSetList):
             self._sets = PersistentList(sets.sets)
         elif isinstance(sets, (PersistentList, list, tuple)):
@@ -302,16 +302,16 @@ class PSetList(Persistent):
         """
         del_keys = []
 
-        for (key, val) in kwargs.items():
+        for key, val in kwargs.items():
             if not val:
-                msg = 'Ignoring an empty or null value for keyword {}. Null or empty values are not supported.'
+                msg = "Ignoring an empty or null value for keyword {}. Null or empty values are not supported."
                 warnings.warn(msg.format(key))
                 del_keys.append(key)
             elif len(self.sets) == 0:
-                msg = 'Searching an empty list.'
+                msg = "Searching an empty list."
                 warnings.warn(msg)
             elif not hasattr(self.sets[0], key):
-                msg = 'Ignoring an unrecognized keyword {}. Make sure you are using correct api type and spelling.'
+                msg = "Ignoring an unrecognized keyword {}. Make sure you are using correct api type and spelling."
                 warnings.warn(msg.format(key))
                 del_keys.append(key)
 
@@ -342,16 +342,16 @@ class PSetList(Persistent):
         """
         del_keys = []
 
-        for (key, val) in kwargs.items():
+        for key, val in kwargs.items():
             if not val:
-                msg = 'Ignoring an empty or null value for keyword {}. Null or empty values are not supported.'
+                msg = "Ignoring an empty or null value for keyword {}. Null or empty values are not supported."
                 warnings.warn(msg.format(key))
                 del_keys.append(key)
             elif len(self.sets) == 0:
-                msg = 'Searching an empty list.'
+                msg = "Searching an empty list."
                 warnings.warn(msg)
             elif not hasattr(self.sets[0], key):
-                msg = 'Ignoring an unrecognized keyword {}. Make sure you are using correct api type and spelling.'
+                msg = "Ignoring an unrecognized keyword {}. Make sure you are using correct api type and spelling."
                 warnings.warn(msg.format(key))
                 del_keys.append(key)
 
@@ -378,47 +378,51 @@ class PSetList(Persistent):
             if self.name:
                 return 'Empty set list "{}" created at {}\n'.format(self.name, str(self.creation_date))
             else:
-                return 'Unnamed empty set list created at {}\n'.format(self.creation_date)
+                return "Unnamed empty set list created at {}\n".format(self.creation_date)
 
-        pp_str = ''
+        pp_str = ""
 
         if self.name:
             pp_str += 'Set list "{}" created at {}\n'.format(self.name, str(self.creation_date))
         else:
-            pp_str += 'Unnamed set list created at {}\n'.format(self.creation_date)
+            pp_str += "Unnamed set list created at {}\n".format(self.creation_date)
 
         longest_name = max(len(pset.name) for pset in self.sets)
-        longest_type = max(len(getattr(pset, 'set_type', getattr(pset, 'type', ''))) for pset in self.sets)
+        longest_type = max(len(getattr(pset, "set_type", getattr(pset, "type", ""))) for pset in self.sets)
         longest_block = max(len(pset.block) if pset.block else 0 for pset in self.sets)
         longest_code = max(len(pset.code) if pset.code else 0 for pset in self.sets)
 
-        pp_str += '-' * (longest_name + longest_type + longest_block + longest_code + 17)
-        pp_str += '\n'
+        pp_str += "-" * (longest_name + longest_type + longest_block + longest_code + 17)
+        pp_str += "\n"
 
-        format_str = '{name:{w1}s}   {code:{w2}s}   {block:{w3}s}   {type:{w4}s}   {cards}\n'
-        pp_str += format_str.format(name='Set',
-                                    w1=longest_name,
-                                    code='Code',
-                                    w2=longest_code,
-                                    block='Block',
-                                    w3=longest_block,
-                                    type='Type',
-                                    w4=longest_type,
-                                    cards='Cards')
-        pp_str += '-' * (longest_name + longest_type + longest_block + longest_code + 17)
-        pp_str += '\n'
+        format_str = "{name:{w1}s}   {code:{w2}s}   {block:{w3}s}   {type:{w4}s}   {cards}\n"
+        pp_str += format_str.format(
+            name="Set",
+            w1=longest_name,
+            code="Code",
+            w2=longest_code,
+            block="Block",
+            w3=longest_block,
+            type="Type",
+            w4=longest_type,
+            cards="Cards",
+        )
+        pp_str += "-" * (longest_name + longest_type + longest_block + longest_code + 17)
+        pp_str += "\n"
 
         for pset in self.sets:
-            format_str = '{name:{w1}s}   {code:{w2}s}   {block:{w3}s}   {type:{w4}s}   {cards}\n'
-            pp_str += format_str.format(name=pset.name,
-                                        w1=longest_name,
-                                        code=pset.code,
-                                        w2=longest_code,
-                                        block=pset.block if pset.block else '',
-                                        w3=longest_block,
-                                        type=getattr(pset, 'set_type', getattr(pset, 'type', '')),
-                                        w4=longest_type,
-                                        cards=len(pset))
+            format_str = "{name:{w1}s}   {code:{w2}s}   {block:{w3}s}   {type:{w4}s}   {cards}\n"
+            pp_str += format_str.format(
+                name=pset.name,
+                w1=longest_name,
+                code=pset.code,
+                w2=longest_code,
+                block=pset.block if pset.block else "",
+                w3=longest_block,
+                type=getattr(pset, "set_type", getattr(pset, "type", "")),
+                w4=longest_type,
+                cards=len(pset),
+            )
 
         return pp_str
 
@@ -427,7 +431,7 @@ class PSetList(Persistent):
         try:
             return self.sets[0].api_type
         except IndexError:
-            return 'unspecified'
+            return "unspecified"
 
     @property
     def json(self):
@@ -435,16 +439,16 @@ class PSetList(Persistent):
 
         for pset in self.sets:
             json_dict = dict(pset.__dict__)
-            del json_dict['_cards']
-            del json_dict['_sideboard']
-            del json_dict['creation_date']
-            del json_dict['id']
+            del json_dict["_cards"]
+            del json_dict["_sideboard"]
+            del json_dict["creation_date"]
+            del json_dict["id"]
 
             if len(pset) > 0:
-                json_dict['cards'] = [card.__dict__ for card in pset.cards]
+                json_dict["cards"] = [card.__dict__ for card in pset.cards]
                 pset_json_dicts.append(json_dict)
 
-        return json.dumps({'sets': pset_json_dicts}, sort_keys=True, indent=4)
+        return json.dumps({"sets": pset_json_dicts}, sort_keys=True, indent=4)
 
     @property
     def sets(self):
