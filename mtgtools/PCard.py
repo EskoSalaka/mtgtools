@@ -714,6 +714,11 @@ class PCard(Persistent):
                 .format(str(self)))
             print(str(err))
 
+    def jprint(self):
+        """Pretty-prints the json representation of this object."""
+
+        print(self.json)
+
     @property
     def api_type(self):
         if hasattr(self, 'scryfall_uri'):

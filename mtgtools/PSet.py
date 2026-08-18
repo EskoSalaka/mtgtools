@@ -264,6 +264,11 @@ class PSet(PCardList, Persistent):
         else:
             super().download_images_from_scryfall(image_type=image_type, dir_path=dir_path + self.code + '\\')
 
+    def jprint(self):
+        """Pretty-prints the json representation of this object."""
+
+        print(self.json)
+
     @property
     def json(self):
         json_dict = dict(self.__dict__)

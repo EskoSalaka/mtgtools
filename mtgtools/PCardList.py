@@ -1402,6 +1402,11 @@ class PCardList(Persistent):
         sorted_cards = self.sorted(lambda card: card.id)
         return BTree(dict((k, list(v)[0]) for k, v in groupby(sorted_cards, key=lambda card: card.id)))
 
+    def jprint(self):
+        """Pretty-prints the json representation of this object."""
+
+        print(self.json)
+
     @property
     def api_type(self):
         try:
