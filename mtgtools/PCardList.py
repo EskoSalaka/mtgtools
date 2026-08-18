@@ -581,7 +581,8 @@ class PCardList(Persistent):
         Returns:
             PCardList: A new list of cards containing only singles cards.
         """
-        return PCardList(list(set(self.cards)))
+        temp = set()
+        return PCardList([card for card in self.cards if card not in temp and (temp.add(card) or True)])
 
     def creatures(self):
         """Returns a new list which only contains the creatures of this list.
@@ -1107,9 +1108,11 @@ class PCardList(Persistent):
         )
         pp_str += "-" * (longest_name + longest_rarity + longest_type_line + longest_mana_cost + 17) + "\n"
 
-        for cards in self.grouped_by_id().values():
-            card = cards[0]
-            num = len(cards)
+        cards_by_id = self.grouped_by_id()
+        unique = self.unique_cards()
+
+        for card in unique:
+            num = len(cards_by_id[card.id])
 
             if self.api_type == "scryfall":
                 if card.card_faces and not card.type_line:
@@ -1140,10 +1143,11 @@ class PCardList(Persistent):
 
         if self.sideboard:
             pp_str += "\nSideboard:\n"
+            sb_unique = PCardList(self.sideboard).unique_cards()
+            sb_by_id = PCardList(self.sideboard).grouped_by_id()
 
-            for cards in PCardList(self.sideboard).grouped_by_id().values():
-                card = cards[0]
-                num = len(cards)
+            for card in sb_unique:
+                num = len(sb_by_id[card.id])
 
                 if self.api_type == "scryfall":
                     if card.card_faces and not card.type_line:
