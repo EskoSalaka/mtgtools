@@ -70,6 +70,7 @@
 import io
 import json
 import os
+import textwrap
 import time
 import urllib.request
 import warnings
@@ -688,6 +689,96 @@ class PCard(Persistent):
         except URLError as err:
             print("Something went wrong with downloading an image for {} from Scryfall: ".format(str(self)))
             print(str(err))
+
+    def pprint_str(self, expanded=False):
+        """
+        Returns a copy-pasteable string representation of this PCard object. The string representation is a
+        simple text representation of the card's gameplay-related attributes which you would generally see
+        on a physical mtg card.
+
+        if 'expanded' is set to True, the string representation will also include other non-gameplay related attributes
+        such as 'artist' and 'flavour_text' of the card.
+        """
+        print_width = 60
+        pprint_str = "\n"
+
+        if self.card_faces is not None:
+            for index, face in enumerate(self.card_faces):
+                pprint_str += face.get("name", "")
+
+                if face.get("mana_cost"):
+                    pprint_str += " " + face["mana_cost"]
+
+                pprint_str += "\n"
+
+                if face.get("type_line"):
+                    pprint_str += face["type_line"]
+
+                    if expanded:
+                        pprint_str += " (" + self.rarity + ", " + self.set + ")"
+
+                    pprint_str += "\n\n"
+
+                if face.get("oracle_text"):
+                    pprint_str += textwrap.fill(face["oracle_text"], width=print_width) + "\n\n"
+
+                if expanded and face.get("flavor_text"):
+                    pprint_str += textwrap.fill(face["flavor_text"], width=print_width) + "\n\n"
+
+                if face.get("power") and face.get("toughness"):
+                    pprint_str += face["power"] + "/" + face["toughness"] + "\n\n"
+
+                if face.get("loyalty"):
+                    pprint_str += face["loyalty"] + "\n\n"
+
+                if expanded and face.get("artist"):
+                    pprint_str += "Illustrated by " + face["artist"] + "\n"
+
+                if index < len(self.card_faces) - 1:
+                    pprint_str += "-----------\n"
+        else:
+            pprint_str += self.name
+
+            if self.mana_cost:
+                pprint_str += " " + self.mana_cost
+            pprint_str += "\n"
+
+            if self.type_line:
+                pprint_str += self.type_line
+
+                if expanded:
+                    pprint_str += " (" + self.rarity + ", " + self.set + ")"
+
+                pprint_str += "\n\n"
+
+            if self.oracle_text:
+                pprint_str += textwrap.fill(self.oracle_text, width=width) + "\n\n"
+
+            if expanded and self.flavor_text:
+                pprint_str += textwrap.fill(self.flavor_text, width=width) + "\n\n"
+
+            if self.power and self.toughness:
+                pprint_str += self.power + "/" + self.toughness + "\n\n"
+
+            if self.loyalty:
+                pprint_str += self.loyalty + "\n\n"
+
+            if expanded and self.artist:
+                pprint_str += "Illustrated by " + self.artist + "\n"
+
+        return pprint_str
+
+    def pprint(self, expanded=False):
+        """
+        Pretty-prints this PCard object as a string representation of its attributes. The string representation is a
+        simple text representation of the card's gameplay-related attributes which you would generally see on a
+        physical mtg card.
+
+        if 'expanded' is set to True, the string representation will also include other non-gameplay related attributes
+        such as 'artist' and 'flavour_text' of the card.
+        """
+
+        print(self.pprint_str(expanded=expanded))
 
     def jprint(self):
         """Pretty-prints the json representation of this object."""
