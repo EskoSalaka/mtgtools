@@ -72,12 +72,14 @@ import time
 
 import ZODB
 import ZODB.FileStorage
+from persistent.list import PersistentList
 import transaction
 from warnings import warn
 
 from mtgtools.PSetList import PSetList
 from mtgtools.PCardList import PCardList
 from .util.api_requests import (
+    process_rulings_bulk,
     process_scryfall_cards,
     process_scryfall_sets,
     get_tot_mtgio_cards,
@@ -188,6 +190,11 @@ class MtgDB:
             self.root.scryfall_sets = PSetList()
 
         try:
+            self.root.rulings
+        except (AttributeError, KeyError):
+            self.root.rulings = PersistentList()
+
+        try:
             self.root.mtgio_cards
         except (AttributeError, KeyError):
             self.root.mtgio_cards = PCardList()
@@ -274,7 +281,8 @@ class MtgDB:
         API as usual but the cards are downloaded from bulk data provided by scryfall.
 
         The bulk data currently contains 4 different kinds of datasets of cards: 'oracle_cards', 'unique_artwork',
-        'default_cards' or 'all_cards'.
+        'default_cards' or 'all_cards' as well as 'rulings' for rulings bulk data. Selecting 'rulings' will update
+        the rulings database instead of the cards database.
 
         Note, that scryfall API requires a User-Agent as well as the Accept headers to be sent with the requests.
         The User-Agent header should contain the name of the application and its version. The default User-Agent
@@ -282,12 +290,19 @@ class MtgDB:
         to the 'headers' argument.
 
         Args:
-            bulk_type (str): Which type of bulk data downloaded, either 'oracle_cards', 'unique_artwork',
-                'default_cards' or 'all_cards'
+            bulk_type (str): Which type of bulk data to update, either 'oracle_cards', 'unique_artwork',
+                'default_cards', 'all_cards' or 'rulings'. Selecting 'rulings' will update the rulings database
+                instead of the cards database.
             headers (dict): A dictionary of headers to be sent with the request to scryfall.
                 The default is {'User-Agent': 'mtgtools/<current_version>', 'Accept': 'application/json;q=0.9,*/*;q=0.8'}.
             verbose (bool): If enabled, prints out progression messages during the updating process.
         """
+        if bulk_type not in ["oracle_cards", "unique_artwork", "default_cards", "all_cards", "rulings"]:
+            raise ValueError(
+                'Invalid bulk_type "{}" selected. Please select either "oracle_cards", "unique_artwork", '
+                '"default_cards", "all_cards" or "rulings".'.format(bulk_type)
+            )
+
         start = round(time.time())
 
         current_sets = self.root.scryfall_sets
@@ -295,49 +310,73 @@ class MtgDB:
         old_set_count = len(current_sets)
 
         if verbose:
-            print("Attempting to update all the data from bulk...")
-            print("querying Scryfall API for sets...")
-
-        # Update sets and check for obsolete sets
-        obsolete_sets = process_scryfall_sets(current_sets, headers)
-
-        if verbose:
             print("querying Scryfall API for bulk data...")
 
         scryfall_card_bulks = get_scryfall_card_bulks(headers)["data"]
-        bulk_type_data = next((bulk for bulk in scryfall_card_bulks if bulk["type"] == bulk_type), None)
 
-        if verbose:
-            print("-----------------------------------------------------------------------------------------------")
-            print('Selected bulk type: "%s":  %s' % (bulk_type, bulk_type_data["description"]))
-            print("Updated at: %s " % bulk_type_data["updated_at"])
-            print("Size: %s MB" % round(int(bulk_type_data["compressed_size"]) / 1024**2))
-            print("-----------------------------------------------------------------------------------------------")
-            print("Downloading bulk data...")
+        if bulk_type != "rulings":
+            if verbose:
+                print("Attempting to update all the card data from bulk {} ...".format(bulk_type))
+                print("querying Scryfall API for sets...")
 
-        bulk_card_data_gzip = download_scryfall_bulk_data_gzip(bulk_type_data["jsonl_download_uri"], headers)
-        bulk_card_data = parse_scryfall_jsonl_gzip(bulk_card_data_gzip)
-        tot_new_cards = len(bulk_card_data) - len(current_cards)
-        tot_new_sets = len(current_sets) + len(obsolete_sets) - old_set_count
+            # Update sets and check for obsolete sets
+            obsolete_sets = process_scryfall_sets(current_sets, headers)
 
-        if verbose:
-            print("Found a total of {} new sets and {} new cards".format(tot_new_sets, tot_new_cards))
-            print("Processing bulk data and updating cards.")
-            print("-----------------------------------------------------------------------------------------------")
+            bulk_type_data = next((bulk for bulk in scryfall_card_bulks if bulk["type"] == bulk_type), None)
 
-        if tot_new_cards < 0:
-            print("Looks like the selected bulk data type contains less cards than what are currently in your")
-            print("database, you probably want to select unique_artwork, default_cards or all_cards to update from.")
+            if verbose:
+                print("-----------------------------------------------------------------------------------------------")
+                print('Selected bulk type: "%s":  %s' % (bulk_type, bulk_type_data["description"]))
+                print("Updated at: %s " % bulk_type_data["updated_at"])
+                print("Size: %s MB" % round(int(bulk_type_data["compressed_size"]) / 1024**2))
+                print("-----------------------------------------------------------------------------------------------")
+                print("Downloading bulk data...")
 
-        process_cards_bulk(current_sets, current_cards, bulk_card_data, verbose)
+            bulk_card_data_gzip = download_scryfall_bulk_data_gzip(bulk_type_data["jsonl_download_uri"], headers)
+            bulk_card_data = parse_scryfall_jsonl_gzip(bulk_card_data_gzip)
+            tot_new_cards = len(bulk_card_data) - len(current_cards)
+            tot_new_sets = len(current_sets) + len(obsolete_sets) - old_set_count
 
-        # Transfer cards from obsolete sets to new ones
-        for obsolete_set in obsolete_sets:
-            cards = obsolete_set.cards
-            if cards:
-                pset = current_sets.where_exactly(code=cards[0].set)
-                if len(pset):
-                    pset[0].extend(cards)
+            if verbose:
+                print("Found a total of {} new sets and {} new cards".format(tot_new_sets, tot_new_cards))
+                print("Processing bulk data and updating cards.")
+                print("-----------------------------------------------------------------------------------------------")
+
+            if tot_new_cards < 0:
+                print("Looks like the selected bulk data type contains less cards than what are currently in your")
+                print(
+                    "database, you probably want to select unique_artwork, default_cards or all_cards to update from."
+                )
+
+            process_cards_bulk(current_sets, current_cards, bulk_card_data, verbose)
+
+            # Transfer cards from obsolete sets to new ones
+            for obsolete_set in obsolete_sets:
+                cards = obsolete_set.cards
+                if cards:
+                    pset = current_sets.where_exactly(code=cards[0].set)
+                    if len(pset):
+                        pset[0].extend(cards)
+
+        else:
+            if verbose:
+                print("Attempting to update rulings from bulk...")
+
+            scryfall_ruling_bulk = next((bulk for bulk in scryfall_card_bulks if bulk["type"] == "rulings"), None)
+            if verbose:
+                print("-----------------------------------------------------------------------------------------------")
+                print("Updating rulings from bulk data")
+                print("Updated at: %s " % scryfall_ruling_bulk["updated_at"])
+                print("Size: %s MB" % round(int(scryfall_ruling_bulk["compressed_size"]) / 1024**2))
+                print("-----------------------------------------------------------------------------------------------")
+
+            bulk_rulings_data_gzip = download_scryfall_bulk_data_gzip(
+                scryfall_ruling_bulk["jsonl_download_uri"], headers
+            )
+            bulk_rulings_data = parse_scryfall_jsonl_gzip(bulk_rulings_data_gzip)
+
+            processed_rulings = process_rulings_bulk(current_cards, bulk_rulings_data, verbose=verbose)
+            self.root.rulings = processed_rulings
 
         if verbose:
             sys.stdout.write("\rSaving and committing...")
@@ -495,3 +534,23 @@ class MtgDB:
             assert card in sets.where_exactly(code=card.set)[0].cards
 
         print("If no errors were encountered then your database should be fine!")
+
+    @property
+    def scryfall_cards(self):
+        return self.root.scryfall_cards
+
+    @property
+    def scryfall_sets(self):
+        return self.root.scryfall_sets
+
+    @property
+    def mtgio_cards(self):
+        return self.root.mtgio_cards
+
+    @property
+    def mtgio_sets(self):
+        return self.root.mtgio_sets
+
+    @property
+    def rulings(self):
+        return self.root.rulings

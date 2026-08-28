@@ -7,6 +7,9 @@ import math
 import sys
 import requests
 
+from persistent.list import PersistentList
+
+from mtgtools.PRuling import PRuling
 from mtgtools.PSet import PSet
 from mtgtools.PSetList import PSetList
 from mtgtools.PCard import PCard
@@ -232,3 +235,38 @@ def process_cards_bulk(sets, cards, bulk_card_data, verbose=True):
         processed += 1
         if verbose:
             sys.stdout.write("\rProcessing card: [{} / {}]".format(processed, tot_cards))
+
+
+def process_rulings_bulk(cards, bulk_rulings_data, verbose=True):
+    # The rulings cannot easily be updated (if they are already in the database) since they have no
+    # unique identifier, so the only easy way is to just rewrite them all
+    rulings = PersistentList()
+    card_oracle_index = {}
+
+    for card in cards:
+        card.rulings = None
+
+        if getattr(card, "oracle_id", None) is not None:
+            card_oracle_index.setdefault(card.oracle_id, []).append(card)
+
+    tot_rulings = len(bulk_rulings_data)
+
+    processed = 0
+    for ruling_json in bulk_rulings_data:
+        ruling = PRuling(ruling_json)
+        rulings.append(ruling)
+
+        associated_cards = card_oracle_index.get(ruling_json["oracle_id"], None)
+        ruling.cards = associated_cards
+
+        for associated_card in associated_cards if associated_cards else []:
+            if associated_card.rulings:
+                associated_card.rulings.append(ruling)
+            else:
+                associated_card.rulings = PersistentList([ruling])
+
+        processed += 1
+        if verbose:
+            sys.stdout.write("\rProcessing ruling: [{} / {}]".format(processed, tot_rulings))
+
+    return rulings

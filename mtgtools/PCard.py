@@ -77,6 +77,7 @@ import warnings
 import pathlib
 from urllib.error import URLError
 from persistent import Persistent
+from persistent.list import PersistentList
 
 
 class PCard(Persistent):
@@ -91,6 +92,11 @@ class PCard(Persistent):
     versions of 'power', 'toughness' and 'loyalty' since these attributes are strings that might contain characters
     like '*' or 'X'. After stripping away these characters, the remaining numbers will be in the numerical version
     of the attribute. If nothing is left after stripping, the attribute will be 0.
+
+    Additionally, PCards can contain a list of PRuling objects which represent oracle rulings, WotC set release notes
+    or Scryfall notes for a card. PRulings are served by Scryfall and can be accessed through the 'rulings' attribute
+    of a PCard object. If the rulings are not updated via the scryfall_bulk_update method or the card object has no
+    associated rulings, the 'rulings' attribute will be None.
 
     For magicthegathering.io api (more at https://docs.mtgio/#api_v1cards_list):
 
@@ -196,10 +202,14 @@ class PCard(Persistent):
         arena_id                str
         booster                 bool
 
+        rulings                 PersistentList[PRuling] or None
+
         args:
             response_dict (str): A json response dictionary containing a set of attributes for the card object from.
                 Tne response dict can be from either Scryfall of magicthegathering.io API.
     """
+
+    _rulings = None
 
     def __init__(self, response_dict):
         if "scryfall_uri" in response_dict:
@@ -328,6 +338,8 @@ class PCard(Persistent):
         self.power_num = self.__mk_num(self.power)
         self.toughness_num = self.__mk_num(self.toughness)
         self.loyalty_num = self.__mk_num(self.loyalty)
+
+        self._rulings = None
 
         if getattr(self, "card_faces", None):
             for card_face in self.card_faces:
@@ -702,7 +714,7 @@ class PCard(Persistent):
         print_width = 60
         pprint_str = "\n"
 
-        if self.card_faces is not None:
+        if self.card_faces is not None and len(self.card_faces) > 0:
             for index, face in enumerate(self.card_faces):
                 pprint_str += face.get("name", "")
 
@@ -723,7 +735,7 @@ class PCard(Persistent):
                     pprint_str += textwrap.fill(face["oracle_text"], width=print_width) + "\n\n"
 
                 if expanded and face.get("flavor_text"):
-                    pprint_str += textwrap.fill(face["flavor_text"], width=print_width) + "\n\n"
+                    pprint_str += textwrap.fill('"' + face["flavor_text"] + '"', width=print_width) + "\n\n"
 
                 if face.get("power") and face.get("toughness"):
                     pprint_str += face["power"] + "/" + face["toughness"] + "\n\n"
@@ -752,10 +764,10 @@ class PCard(Persistent):
                 pprint_str += "\n\n"
 
             if self.oracle_text:
-                pprint_str += textwrap.fill(self.oracle_text, width=width) + "\n\n"
+                pprint_str += textwrap.fill(self.oracle_text, width=print_width) + "\n\n"
 
             if expanded and self.flavor_text:
-                pprint_str += textwrap.fill(self.flavor_text, width=width) + "\n\n"
+                pprint_str += textwrap.fill('"' + self.flavor_text + '"', width=print_width) + "\n\n"
 
             if self.power and self.toughness:
                 pprint_str += self.power + "/" + self.toughness + "\n\n"
@@ -765,6 +777,16 @@ class PCard(Persistent):
 
             if expanded and self.artist:
                 pprint_str += "Illustrated by " + self.artist + "\n"
+
+        if expanded and self.collector_number:
+            pprint_str += "Collector number: " + self.collector_number + "\n"
+
+        if expanded and self.legalities:
+            pprint_str += "\n"
+            pprint_str += textwrap.fill(
+                "Legal in: " + ", ".join([key for key, value in self.legalities.items() if value == "legal"]),
+                width=print_width,
+            )
 
         return pprint_str
 
@@ -780,6 +802,23 @@ class PCard(Persistent):
 
         print(self.pprint_str(expanded=expanded))
 
+    def rprint(self, expanded=False):
+        """Pretty-prints the rulings of this PCard object as a string representation of its rulings.
+
+        if 'expanded' is set to True, the string representation will also include other non-gameplay related attributes
+        such as 'source' and 'date' of the ruling.
+        """
+
+        if self.rulings is None or len(self.rulings) == 0:
+            print("No rulings found for this card.")
+            return
+
+        for index, ruling in enumerate(self.rulings):
+            print(ruling.pprint_str(expanded=expanded))
+
+            if index < len(self.rulings) - 1:
+                print("\n-----------")
+
     def jprint(self):
         """Pretty-prints the json representation of this object."""
 
@@ -794,4 +833,22 @@ class PCard(Persistent):
 
     @property
     def json(self):
-        return json.dumps(self, default=lambda o: o.__dict__, sort_keys=True, indent=4)
+        return json.dumps(
+            self,
+            default=lambda o: {key: value for key, value in o.__dict__.items() if key != "_rulings"},
+            sort_keys=True,
+            indent=4,
+        )
+
+    @property
+    def rulings(self):
+        return self._rulings
+
+    @rulings.setter
+    def rulings(self, rulings):
+        if isinstance(rulings, (list, tuple, PersistentList)):
+            self._rulings = PersistentList(rulings)
+        elif rulings is None:
+            self._rulings = None
+        else:
+            raise TypeError("Rulings must be a list, tuple or PersistentList of PRuling objects or None.")

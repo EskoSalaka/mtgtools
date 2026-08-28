@@ -1587,7 +1587,7 @@ class PCardList(Persistent):
     @property
     def json(self):
         return json.dumps(
-            {"cards": [card.__dict__ for card in self.cards]},
+            {"cards": [json.loads(card.json) for card in self.cards]},
             sort_keys=True,
             indent=4,
         )

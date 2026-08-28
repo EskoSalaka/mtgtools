@@ -271,7 +271,10 @@ class PSet(PCardList, Persistent):
 
     @property
     def json(self):
-        json_dict = dict(self.__dict__)
-        json_dict["cards"] = [card.__dict__ for card in self.cards]
+        json_dict = {
+            key: value for key, value in self.__dict__.items() if key not in {"_cards", "_sideboard", "creation_date"}
+        }
+
+        json_dict["cards"] = [json.loads(card.json) for card in self.cards]
 
         return json.dumps(json_dict, sort_keys=True, indent=4)
