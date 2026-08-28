@@ -264,7 +264,6 @@ class MtgDB:
             sys.stdout.write("\rSaving and committing...")
 
         transaction.commit()
-        self.database.pack()
 
         if verbose:
             update_str = "\rThe Scryfall database is now up to date! \nElapsed time: {}"
@@ -382,7 +381,6 @@ class MtgDB:
             sys.stdout.write("\rSaving and committing...")
 
         transaction.commit()
-        self.database.pack()
 
         if verbose:
             update_str = "\rThe Scryfall database is now up to date! \nElapsed time: {}"
@@ -432,7 +430,6 @@ class MtgDB:
             sys.stdout.write("\rSaving and committing...")
 
         transaction.commit()
-        self.database.pack()
 
         if verbose:
             update_str = "\rThe magicthegathering.io database is now up to date!\nElapsed time: {}"
