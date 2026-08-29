@@ -686,14 +686,20 @@ class PCardList(Persistent):
     def converted_mana_cost(self):
         """Returns the converted mana cost of the list.
 
+        Some special cards may not have a mana cost, in which case they are
+        considered to have a mana cost of 0.
+
         Returns:
             float: The converted mana cost of the list.
 
         """
-        return sum(card.cmc for card in self.cards)
+        return sum(card.cmc or 0 for card in self.cards)
 
     def average_mana_cost(self):
         """Returns the average mana cost of the cards in this list.
+
+        Some special cards may not have a mana cost, in which case they are
+        considered to have a mana cost of 0.
 
         Returns:
             float: The average mana cost of the list.
@@ -702,7 +708,7 @@ class PCardList(Persistent):
         if len(self.cards) == 0:
             return 0
         else:
-            return sum(card.cmc for card in self.cards) / len(self.cards)
+            return sum(card.cmc or 0 for card in self.cards) / len(self.cards)
 
     def mana_symbol_counts(self):
         """Returns a dictionary containing the counts of all the manasymbols of the cards of this list.
@@ -734,14 +740,20 @@ class PCardList(Persistent):
         """Returns a dictionary containing the cards of this list grouped by their converted mana costs.
         The dictionary is in the form:
 
-        {'0.0': cards with cmc 0, '1.0': cards with cmc 1, '2.0': cards with cmc 2, ...}
+        {
+            '0.0': cards with cmc 0,
+            '1.0': cards with cmc 1,
+            '2.0': cards with cmc 2,
+            None: cards with no cmc,
+            etc...
+        }
 
         The keys will only be in the dictionary if there are cards with the corresponding mana costs in this list.
 
         Returns:
             dict: A dictionary containing the cards grouped by their converted mana costs.
         """
-        sorted_cards = self.sorted(lambda card: card.cmc)
+        sorted_cards = self.sorted(lambda card: (card.cmc is None, card.cmc))
         return dict((k, PCardList(list(v))) for k, v in groupby(sorted_cards, key=lambda card: card.cmc))
 
     def grouped_by_simple_type(self):
