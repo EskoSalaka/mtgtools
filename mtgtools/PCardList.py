@@ -1590,6 +1590,13 @@ class PCardList(Persistent):
         print(self.json)
 
     @property
+    def len(self):
+        """Returns the number of cards in this PCardList. Functions the same as the
+        built-in len() acting on this PCradList."""
+
+        return self.__len__()
+
+    @property
     def api_type(self):
         try:
             return self.cards[0].api_type
