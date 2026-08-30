@@ -892,31 +892,31 @@ class PCardList(Persistent):
 
         The string will be of the following format:
         --------------------------------------
-        //This is a comment
+        // This is a comment
         num Card Name [set_code] /n
         num Card Name [set_code] /n
         num Card Name [set_code] /n
 
-        //Some other cards
+        // Some other cards
         num Some Other Card Name [set_code] /n
 
-        /Sideboard
+        // Sideboard
         SB: num Some Sideboard Card Name [set_code] /n
         SB: num Some Sideboard Card Name [set_code] /n
         --------------------------------------
 
         eg.
         --------------------------------------
-        //Creatures (8)
+        // Creatures (8)
         1 Wild Mongrel [od]
         4 Aquamoeba [od]
         2 Werebear
         noose constrictor
 
-        //Enchantments (1)
+        // Enchantments (1)
         rancor [ULG]
 
-        //Sideboard (2)
+        // Sideboard (2)
         SB: 2 Werebear
         --------------------------------------
 
@@ -1333,24 +1333,24 @@ class PCardList(Persistent):
     def from_str(self, card_list_str, **kwargs):
         """Reads a given card list string and returns a new list of all the cards of this list found in the string.
 
-        The string should be given in the following format:
+        The string should be given in the following format as an example:
 
         --------------------------------------
         //This is a comment
         num Card Name [set_code collector_number] /n
-        num Card Name [set_code collector_number] /n
-        num Card Name [set_code collector_number] /n
+        num Card Name [set_code] /n
+        num Card Name /n
 
         //Some other cards
         num Some Other Card Name [set_code collector_number] /n
 
         //Sideboard
-        SB: Some Sideboard Card Name [set_code collector_number] /n
-        SB: Some Sideboard Card Name [set_code collector_number] /n
+        SB: Some Sideboard Card Name [set_code] /n
+        SB: Some Sideboard Card Name /n
         --------------------------------------
 
-        The number of cards 'num' and the set code '[set_code]' or '(set_code)' along with the collector number are
-        optional. The collector number can only be specified after a valid set code. Card names and set codes
+        The number of cards 'num' and the set code '[set_code]' or '(set_code)' along with the collector_number are
+        optional. The collector_number can only be specified after a valid set code. Card names and set codes
         are case-insensitive. Each card or cards must be on its own line and comments can only start in the beginning
         of lines. Cards found on lines starting with the prefix 'SB:' are added in the sideboard of the list.
 
