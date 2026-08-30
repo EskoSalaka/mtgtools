@@ -441,7 +441,7 @@ class PSetList(Persistent):
     def len(self):
         """Returns the number of sets in this list. Works the same as the in-built len()
         function acting on this PSetList."""
-        return len(self.__len__())
+        return self.__len__()
 
     @property
     def json(self):
