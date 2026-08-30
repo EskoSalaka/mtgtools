@@ -438,6 +438,12 @@ class PSetList(Persistent):
             return "unspecified"
 
     @property
+    def len(self):
+        """Returns the number of sets in this list. Works the same as the in-built len()
+        function acting on this PSetList."""
+        return len(self.__len__())
+
+    @property
     def json(self):
         return json.dumps({"sets": [json.loads(pset.json) for pset in self.sets]}, sort_keys=True, indent=4)
 
