@@ -426,6 +426,10 @@ class PSetList(Persistent):
 
         return pp_str
 
+    def jprint(self):
+        """Prints out the contents of this list in a nice readable JSON format."""
+        print(self.json)
+
     @property
     def api_type(self):
         try:
@@ -435,20 +439,7 @@ class PSetList(Persistent):
 
     @property
     def json(self):
-        pset_json_dicts = []
-
-        for pset in self.sets:
-            json_dict = dict(pset.__dict__)
-            del json_dict["_cards"]
-            del json_dict["_sideboard"]
-            del json_dict["creation_date"]
-            del json_dict["id"]
-
-            if len(pset) > 0:
-                json_dict["cards"] = [card.__dict__ for card in pset.cards]
-                pset_json_dicts.append(json_dict)
-
-        return json.dumps({"sets": pset_json_dicts}, sort_keys=True, indent=4)
+        return json.dumps({"sets": [json.loads(pset.json) for pset in self.sets]}, sort_keys=True, indent=4)
 
     @property
     def sets(self):
