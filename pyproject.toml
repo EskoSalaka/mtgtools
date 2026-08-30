@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "mtgtools"
-version = "0.9.72"
+version = "0.9.90"
 description = "Collection of tools for easy handling of Magic: The Gathering card and set data on your computer from Scryfall and/or magicthegathering.io."
 readme = "README.md"
 requires-python = ">=3.7"
