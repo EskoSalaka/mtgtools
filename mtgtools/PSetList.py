@@ -206,7 +206,7 @@ class PSetList(Persistent):
         Args:
             pset (PSet): The set object to be searched.
         """
-        self._sets.index(pset)
+        return self._sets.index(pset)
 
     def clear(self):
         """Clears this list."""
@@ -226,7 +226,7 @@ class PSetList(Persistent):
         Args:
             index (int): An index to remove a set from.
         """
-        self._sets.pop(index)
+        return self._sets.pop(index)
 
     def count(self, pset):
         """Returns the number of given set objects in this list. Sets are considered same if they have the same code.

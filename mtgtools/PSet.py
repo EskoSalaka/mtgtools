@@ -162,7 +162,7 @@ class PSet(PCardList, Persistent):
         return self.code == other.code
 
     def __ne__(self, other):
-        return not self == other
+        return self.code != other.code
 
     def __cmp__(self, other):
         if self.__eq__(other):
