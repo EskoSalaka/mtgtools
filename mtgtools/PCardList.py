@@ -191,13 +191,20 @@ class PCardList(Persistent):
 
     def __sub__(self, other):
         if isinstance(other, PCardList):
-            return PCardList([card for card in self.cards if card not in other.cards])
+            cards_to_remove = other.cards
         elif isinstance(other, (list, PersistentList, tuple)):
-            return PCardList([card for card in self.cards if card not in other])
+            cards_to_remove = other
         elif isinstance(other, PCard):
-            return PCardList([card for card in self.cards if card is not other])
+            cards_to_remove = [other]
         else:
             raise TypeError
+
+        remaining_cards = list(self.cards)
+        for card in cards_to_remove:
+            if card in remaining_cards:
+                remaining_cards.remove(card)
+
+        return PCardList(remaining_cards)
 
     def __mul__(self, num):
         plist = PCardList()
@@ -238,7 +245,7 @@ class PCardList(Persistent):
         self._cards.insert(index, card)
 
     def index(self, card):
-        """Returns the index where the given card object is located in the list.
+        """Returns the first index where the given card object is located in the list.
 
         Args:
             card (PCard): The card object to be searched.
