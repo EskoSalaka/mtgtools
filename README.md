@@ -35,12 +35,16 @@ a native object database for Python. Everything is simply in Python, so no knowl
 
 ## Scryfall vs magicthegathering.io
 
-At the moment there exists two different kind of APIs for mtg data, Scryfall and magicthegathering.io. They are
+At the moment there exist at least two different kind of APIs for mtg data, Scryfall and magicthegathering.io. They are
 structured in different ways and both have pros and cons. For example, Scryfall cards contain attribute `card_faces`
 whereas the faces in mtgio are separate cards.
 
-At the moment, Scryfall has a more extensive database with more useful data like prices and purchase uris and also hosts
-good quality card images, so in my opinion it is more useful of the two.
+Scryfall has a more extensive database with more useful data like prices and purchase uris and also hosts good quality 
+card images, so in my opinion it is the most useful one. Also, it seems like magicthegathering.io is now part of 
+Scrydex so it may soon not be maintained anymore. For that reason, Scryfall should be the default API for mtgtools and 
+it is recommended to use it.
+
+This app has supported both APIs from the beginning, but at this point mtgio should be considered deprecated.
 
 ## Installing
 
@@ -48,7 +52,7 @@ mtgtools can be simply installed with `pip install mtgtools`.
 
 ## Usage guide
 
-### Persistent card, set and card list objects
+### Persistent card, set, ruling and card list objects
 
 Working with the database mostly revolves around working with the following persistent card and card list objects. Data
 persistence in this case basically means that ZODB will automatically detect when these objects are accessed and
@@ -113,15 +117,27 @@ These lists can be saved in the database just like any other persistent objects.
 querying the sets it contains but in most cases it is only useful as a container database. It works very similarly
 to `PCardList` except that it holds sets rather than cards.
 
+#### **PRuling**
+
+`PRuling` is a simple persistent dataclass representing oracle rulings, WotC set release notes or a Scryfall notes.
+Rulings are served by Scryfall only and you can read more about them at https://scryfall.com/docs/api/rulings.
+
+In the database, `PRuling`s are linked to the cards they are related to and can be accessed through the `rulings` attribute 
+of the `PCard` objects. Additionally, `PRuling`s contain the `cards` attribute which is a `PCardList` of the cards the 
+ruling is related to. 
+
+The `PRuling` objects can also be accessed separately from the database root `rulings` attribute which is a `PersistentList` 
+of all the `PRuling`s in the database.
+
 ### Working with the database
 
 #### Opening/creating databases
 
 An existing database can be opened simply with
 
-```
->>> from mtgtools.MtgDB import MtgDB
->>> mtg_db = MtgDB('my_db.fs')
+``` python
+from mtgtools.MtgDB import MtgDB
+mtg_db = MtgDB('my_db.fs')
 ```
 
 If no storage in the given path is found, a new empty database is automatically created.
@@ -130,38 +146,42 @@ Now that the connection to the database is open, the `mtg_db` will contain all t
 `storage`, `connection`, `database` and `root` (more about these in http://www.zodb.org/en/latest/reference/index.html).
 The cards and sets can now be found in the `root` of the database with
 
-```
->>> scryfall_cards = mtg_db.root.scryfall_cards
->>> scryfall_sets = mtg_db.root.scryfall_sets
+``` python
+scryfall_cards = mtg_db.root.scryfall_cards
+scryfall_sets = mtg_db.root.scryfall_sets
 ```
 
 and
 
-```
->>> mtgio_cards = mtg_db.root.mtgio_cards
->>> mtgio_sets = mtg_db.root.mtgio_sets
+``` python
+mtgio_cards = mtg_db.root.mtgio_cards
+mtgio_sets = mtg_db.root.mtgio_sets
 
 ```
 
 All the cards are saved as a `PCardList` and all the sets are saved as a `PSetList`. The root acts as a
 boot-strapping point and a top-level container for all the objects in the database.
 
-```
->>> print(mtg_db.root)
-
+``` python
+print(mtg_db.root)
+``` 
+``` 
 <root: mtgio_cards mtgio_sets scryfall_cards scryfall_sets>
 ```
 
 The above method for accessing the database objects is a convenience, and you can also access the root mapping with
 
-```
->>> root_mapping = tool.connection.root()
->>> print([key for key in root_mapping.keys()])
-
+``` python
+root_mapping = tool.connection.root()
+print([key for key in root_mapping.keys()])
+``` 
+``` 
 ['scryfall_sets', 'mtgio_cards', 'scryfall_cards', 'mtgio_sets']
-
->>> print('scryfall_cards' in root_mapping)
-
+``` 
+``` python
+print('scryfall_cards' in root_mapping)
+``` 
+``` 
 True
 ```
 
@@ -169,20 +189,28 @@ True
 
 Building the database from scratch from Scryfall and mtgio is simply done with
 
-```
+``` python
 my_db.scryfall_bulk_update()
-my_db.mtgio_update()
+# my_db.mtgio_update() Prefer Scryfall over mtgio since Scryfall has more complete data and better images.
+
+# Updates the rulings from Scryfall
+my_db.scryfall_bulk_update(bulk_type='rulings')
 ```
 
 The update downloads and saves all new card and set data and also updates any changes to the existing data. This is
 also useful when updating for example the price and legality attributes of the Scryfall cards which might often change.
+
+The 'scryfall_bulk_update' method uses the Scryfall bulk data API which is much faster than the normal API. Scryfall
+serves multiple different bulk datasets and the default one is the 'default_cards' dataset. The 'bulk_type' argument 
+can be set to any of the other bulk datasets such as 'oracle_cards' or 'unique_artwork'. Additionally, setting
+`bulk_type='rulings'` will update the rulings of the cards in the database. The rulings are served by Scryfall only.
 
 Building the database from scratch takes about few minutes to complete and it is mostly affected by the API request
 limits which are 10 request per second for Scryfall and 5000 requests per hour for magicthegathering.io. About 10
 requests per second are sent during updating which should comply with the Scryfall limits, and with magicthegathering.io
 you have to make sure not to run the update too many times per hour.
 
-### Working with card lists
+### Working with cards, rulings and card lists
 
 #### Querying, filtering and sorting
 
@@ -216,41 +244,49 @@ can now also match with any possible faces of the cards.
 
 Let's start by getting all the Scryfall cards and sets of the database:
 
-```
->>> from mtgtools.MtgDB import MtgDB
+``` python
+from mtgtools.MtgDB import MtgDB
 
->>> mtg_db = MtgDB('my_db.fs')
->>> cards = mtg_db.root.scryfall_cards
->>> sets = mtg_db.root.scryfall_sets
+mtg_db = MtgDB('my_db.fs')
+cards = mtg_db.root.scryfall_cards
+sets = mtg_db.root.scryfall_sets
 ```
 
 Some basic searching:
 
-```
->>> werebears = cards.where_exactly(name='Werebear')
->>> print(werebears)
-
+``` python
+werebears = cards.where_exactly(name='Werebear')
+print(werebears)
+``` 
+``` 
 [Werebear (ema), Werebear (td0), Werebear (wc02), Werebear (ody)]
-
->>> print(len(werebears))
-
+``` 
+``` python
+print(len(werebears))
+``` 
+``` 
 4
 ```
 
 Turns out that there are 4 different Werebear cards in 4 different sets. Lets get the single card from Odyssey:
 
-```
->>> ody_werebear = cards.where_exactly(name='Werebear', set='ody')[0]
->>> print(ody_werebear)
-
+``` python
+ody_werebear = cards.where_exactly(name='Werebear', set='ody')[0]
+print(ody_werebear)
+``` 
+``` 
 Werebear (ody)
-
->>> print(ody_werebear.name, ody_werebear.set, ody_werebear.set_name, ody_werebear.power, ody_werebear.toughness)
-
+``` 
+``` python
+print(ody_werebear.name, ody_werebear.set, ody_werebear.set_name, ody_werebear.power, ody_werebear.toughness)
+``` 
+``` 
 Werebear ody Odyssey 1 1
-
->>>print(ody_werebear.oracle_text)
-
+``` 
+``` python
+print(ody_werebear.oracle_text)
+``` 
+``` 
 {T}: Add {G}.
 Threshold — Werebear gets +3/+3 as long as seven or more cards are in your graveyard.
 ```
@@ -263,23 +299,26 @@ Also note, that for `where` it is enough for the arguments match only partly. Fo
 `name`, `type_line`, and `oracle_text` it is enough for the argument to be a substring of the cards' attribute in
 question:
 
+``` python
+werebears = cards.where(name='wereb')
+print(werebears)
+``` 
 ```
->>> werebears = cards.where(name='wereb')
->>> print(werebears)
-
 [Werebear (ema), Werebear (td0), Werebear (wc02), Werebear (ody)]
-
->>> print(cards.where(oracle_text='12 damage'))
-
+``` 
+``` python
+print(cards.where(oracle_text='12 damage'))
+``` 
+``` 
 [Everythingamajig (ust), Tower of Calamities (som)]
 ```
 
 Querying and other operations return new lists so we can also chain multiple queries together. One of the previous
 examples with chaining:
 
-```
->>> ody_werebear = cards.where_exactly(name='Werebear').where_exactly(set='ody')[0]
->>> print(ody_werebear.uri)
+``` python
+ody_werebear = cards.where_exactly(name='Werebear').where_exactly(set='ody')[0]
+print(ody_werebear.uri)
 
 https://scryfall.com/card/ody/282?utm_source=api
 ```
@@ -289,25 +328,47 @@ quite like the usual `filter` - method for Python lists. `filtered` takes a func
 containing all the cards of the list for which the given function returns True. Lambda functions are very convenient
 with this method. For example, we can find the Odyssey _Werebear_ by filtering our cards in the following way:
 
-```
->>> ody_werebear = cards.filtered(lambda card: card.name == 'Werebear' and card.set == 'ody')
->>> print(ody_werebear)
-
+``` python
+ody_werebear = cards.filtered(lambda card: card.name == 'Werebear' and card.set == 'ody')
+print(ody_werebear)
+ody_werebear[0].pprint(expanded=True)
+``` 
+``` 
 [Werebear (ody)]
+
+Werebear {1}{G}
+Creature — Human Bear Druid (common, ody)
+
+{T}: Add {G}. Threshold — This creature gets +3/+3 as long
+as there are seven or more cards in your graveyard.
+
+"He exercises his right to bear arms."
+
+1/1
+
+Illustrated by Carl Critchlow
+Collector number: 282
+
+Legal in: legacy, pauper, vintage, commander, oathbreaker,
+paupercommander, duel, premodern, predh, tlr
 ```
 
 The card list can be sorted with the `sorted` - method, which works quite like the usual `sort` - method for Python
 lists. It takes a function object which should return some attributes of card objects by which this list is sorted.
 For example sorting by set codes:
 
-```
->>> werebears = cards.where_exactly(name='Werebear')
->>> print(werebears)
-
+``` python
+werebears = cards.where_exactly(name='Werebear')
+print(werebears)
+``` 
+``` 
 [Werebear (ema), Werebear (td0), Werebear (wc02), Werebear (ody)]
->>> sorted_werebears = werebears.sorted(lambda card: card.set)
->>> print(sorted_werebears)
-
+``` 
+``` python
+sorted_werebears = werebears.sorted(lambda card: card.set)
+print(sorted_werebears)
+``` 
+``` 
 [Werebear (ema), Werebear (ody), Werebear (td0), Werebear (wc02)]
 ```
 
@@ -318,100 +379,218 @@ be accessed directly.
 
 `PCardList` acts like normal Python list so we can use normal indexing and slicing. You can also create empty lists:
 
-```
->>> werebears = cards.where_exactly(name='Werebear')
->>> print(werebears[1:3])
-
+``` python
+werebears = cards.where_exactly(name='Werebear')
+print(werebears[1:3])
+``` 
+``` 
 [Werebear (td0), Werebear (wc02)]
-
->>> print(len(werebears[1:3]))
-
+``` 
+``` python
+print(len(werebears[1:3]))
+``` 
+``` 
 2
-
->>> print(werebears[-1])
-
+``` 
+``` python
+print(werebears[-1])
+``` 
+``` 
 Werebear (ody)
-
->>> from mtgtools.PCardList import PCardList
->>> new_empty_list = PCardList()
->>> print(new_empty_list)
-
+``` 
+``` python
+from mtgtools.PCardList import PCardList
+new_empty_list = PCardList()
+print(new_empty_list)
+``` 
+``` 
 []
-
->>> print(len(new_empty_list))
-
+``` 
+``` python
+print(len(new_empty_list))
+``` 
+``` 
 0
 ```
 
 Cards can be easily combined with addition. Addition works with lists and single card objects:
 
+``` python
+werebears = cards.where_exactly(name='Werebear')
+wild_mongrels = cards.where_exactly(name='Wild Mongrel')
+two_bears_One_mongrel = werebears + wild_mongrels[0]
+print(two_bears_One_mongrel)
+``` 
 ```
->>> werebears = cards.where_exactly(name='Werebear')
->>> wild_mongrels = cards.where_exactly(name='Wild Mongrel')
->>> two_bears_One_mongrel = werebears + wild_mongrels[0]
->>> print(two_bears_One_mongrel)
-
 [Werebear (ema), Werebear (td0), Werebear (wc02), Werebear (ody), Wild Mongrel (gvl)]
-
+``` 
+``` python
 Two_bears_two_mongrels = werebears[0:2] + wild_mongrels[0:2]
 print(Two_bears_two_mongrels)
-
+``` 
+``` 
 [Werebear (ema), Werebear (td0), Wild Mongrel (gvl), Wild Mongrel (vma)]
 ```
 
 Another way of combining lists is to append cards to an existing list. Note, that this will actually change the list
 instead of creating another one:
 
-```
->>> werebears = cards.where_exactly(name='Werebear')
->>> one_mongrel = cards.where_exactly(name='Wild Mongrel')[0]
->>> werebears.append(one_mongrel)
->>> print(werebears)
-
+``` python
+werebears = cards.where_exactly(name='Werebear')
+one_mongrel = cards.where_exactly(name='Wild Mongrel')[0]
+werebears.append(one_mongrel)
+print(werebears)
+``` 
+``` 
 [Werebear (ema), Werebear (td0), Werebear (wc02), Werebear (ody), Wild Mongrel (gvl)]
 ```
 
 Cards can be removed from lists with subtraction or with the common list method `remove`. Subtraction works with lists
 and single card objects and it is basically the same as set subtraction:
 
-```
->>> werebears = cards.where_exactly(name='Werebear')
->>> wild_mongrels = cards.where_exactly(name='Wild Mongrel')
->>> two_bears_One_mongrel = werebears + wild_mongrels[0]
->>> print(two_bears_One_mongrel)
-
+``` python
+werebears = cards.where_exactly(name='Werebear')
+wild_mongrels = cards.where_exactly(name='Wild Mongrel')
+two_bears_One_mongrel = werebears + wild_mongrels[0]
+print(two_bears_One_mongrel)
+``` 
+``` 
 [Werebear (ema), Werebear (td0), Werebear (wc02), Werebear (ody), Wild Mongrel (gvl)]
-
->>> only_bears = two_bears_One_mongrel - wild_mongrels
->>> print(only_bears)
-
+``` 
+``` python
+only_bears = two_bears_One_mongrel - wild_mongrels
+print(only_bears)
+``` 
+``` 
 [Werebear (ema), Werebear (td0), Werebear (wc02), Werebear (ody)]
-
->>> only_bears = two_bears_One_mongrel - wild_mongrels[0]
->>> print(only_bears)
-
+``` 
+``` python
+only_bears = two_bears_One_mongrel - wild_mongrels[0]
+print(only_bears)
+``` 
+``` 
 [Werebear (ema), Werebear (td0), Werebear (wc02), Werebear (ody)]
 ```
 
 Cards in the lists can be multiplied. This is for example handy for getting playsets of certain cards (note, that
 you have to multiply lists, not card objects):
 
-```
->>> playset_of_bears = 4 * cards.where_exactly(name='Werebear')[0:1]
->>> print(playset_of_bears)
-
+``` python
+playset_of_bears = 4 * cards.where_exactly(name='Werebear')[0:1]
+print(playset_of_bears)
+``` 
+``` 
 [Werebear (ema), Werebear (ema), Werebear (ema), Werebear (ema)]
-
->>> bear_and_arena = PCardList() + cards.where_exactly(name='Werebear')[0] + cards.where_exactly(name='Arena')[0]
->>> playset_of_bears_and_arenas = 4 * bear_and_arena
->>> playset_of_bears_and_arenas.pprint()
-
+``` 
+``` python
+bear_and_arena = PCardList() + cards.where_exactly(name='Werebear')[0] + cards.where_exactly(name='Arena')[0]
+playset_of_bears_and_arenas = 4 * bear_and_arena
+playset_of_bears_and_arenas.pprint()
+``` 
+``` 
 Unnamed card list created at 2018-07-18 14:51:23.759658
 ------------------------------------------------------------------
 Card         Set   Type                          Cost     Rarity
 ------------------------------------------------------------------
 4 Arena      tsb   Land                                   rare
 4 Werebear   ema   Creature - Human Bear Druid   {1}{G}   common
+```
+
+#### Working with rulings
+
+The `PRuling` objects associated with a certain card can be accessed through the `rulings` attribute of the `PCard` objects
+(if they have any). For example, we can get the rulings for the card _Derevi, Empyrial Tactician_:
+
+``` python
+derevis = cards.where(name="Derevi, Empyrial Tactician")
+derevi_rulings = derevis[0].rulings
+
+print(f"Rulings for {derevis[0].name}:")
+for ruling in derevi_rulings:
+    print(f"- {ruling.published_at}: {ruling.comment}")
+```
+
+```
+Rulings for Derevi, Empyrial Tactician:
+- 2015-01-19: Derevi, Empyrial Tactician is banned as a commander in Duel Commander format, but it may be part of your deck.
+- 2020-11-10: You can activate Derevi's last ability only when it is in the command zone.
+- 2020-11-10: When you activate Derevi's last ability, you're not casting Derevi as a spell. The ability can't be countered by something that counters only spells. The ability isn't subject to the commander tax, nor does it increase the tax if you cast Derevi from the command zone later in the game.
+```
+
+`PCard` objects also have a handly `rprint` method which prints out the rulings in a readable way:
+``` python
+derevis[0].rprint(expanded=True)
+```
+```
+Source: scryfall
+Published at: 2015-01-19
+Associated cards: Derevi, Empyrial Tactician (7 cards) (cma, c13, blc, oc13, cmr, sld, prm)
+
+Derevi, Empyrial Tactician is banned as a commander in Duel
+Commander format, but it may be part of your deck.
+
+-----------
+
+Source: wotc
+Published at: 2020-11-10
+Associated cards: Derevi, Empyrial Tactician (7 cards) (cma, c13, blc, oc13, cmr, sld, prm)
+
+You can activate Derevi's last ability only when it is in
+the command zone.
+
+-----------
+
+Source: wotc
+Published at: 2020-11-10
+Associated cards: Derevi, Empyrial Tactician (7 cards) (cma, c13, blc, oc13, cmr, sld, prm)
+
+When you activate Derevi's last ability, you're not casting
+Derevi as a spell. The ability can't be countered by
+something that counters only spells. The ability isn't
+subject to the commander tax, nor does it increase the tax
+if you cast Derevi from the command zone later in the game.
+```
+
+The `PRuling` objects can also be accessed separately from the database root `rulings` attribute which is a `PersistentList` 
+of all the `PRuling`s in the database.
+
+``` python
+rulings = mtg_db.root.rulings
+
+first_five_rulings = rulings[:5]
+for ruling in first_five_rulings:
+    print(f"- {ruling.published_at}: {ruling.comment}")
+```
+
+```
+- 2025-02-07: Energy counters are a kind of counter that a player may have. They’re not associated with any specific permanents.
+- 2025-02-07: Some spells and abilities say that you “may pay” a certain amount of {E}. You can’t pay that amount multiple times to multiply the effect. You simply choose whether or not to pay that amount of {E} as the ability resolves.
+- 2025-02-07: {E} is the energy symbol. It represents one energy counter.
+- 2025-02-07: Energy counters aren’t mana. They don’t go away as steps, phases, and turns end, and effects that add mana “of any type” can’t give you energy counters.
+- 2025-02-07: Keep track of how many energy counters each player has. Potential ways to track this include writing them down on paper or using dice, but any method that is clear and mutually agreeable is fine.
+```
+
+Each `PRuling` object has a `cards` attribute which is a `PCardList` of all the cards the ruling is related to.
+These cards all have the same name and are usually different printings of the same card.
+
+``` python
+derevis = cards.where(name="Derevi, Empyrial Tactician")
+derevi_rulings = derevis[0].rulings
+
+derevi_rulings[0].cards.pprint()
+```
+```
+Card list "Ruling: afa49a09-146f-4439-850e-dd1938c93cef" created at 2026-08-28 14:40:31.134597 with a total of 7 cards
+--------------------------------------------------------------------------------------------
+Card                           Set    Type                               Cost        Rarity
+--------------------------------------------------------------------------------------------
+1 Derevi, Empyrial Tactician   cma    Legendary Creature - Bird Wizard   {G}{W}{U}   mythic
+1 Derevi, Empyrial Tactician   c13    Legendary Creature - Bird Wizard   {G}{W}{U}   mythic
+1 Derevi, Empyrial Tactician   blc    Legendary Creature - Bird Wizard   {G}{W}{U}   rare  
+1 Derevi, Empyrial Tactician   oc13   Legendary Creature - Bird Wizard   {G}{W}{U}   mythic
+1 Derevi, Empyrial Tactician   cmr    Legendary Creature - Bird Wizard   {G}{W}{U}   mythic
+1 Derevi, Empyrial Tactician   sld    Legendary Creature - Bird Wizard   {G}{W}{U}   rare  
+1 Derevi, Empyrial Tactician   prm    Legendary Creature - Bird Wizard   {G}{W}{U}   mythic
 ```
 
 #### Working with multifaced cards from Scryfall
@@ -431,15 +610,18 @@ card. For that reason, by default the first card face is also matched if it is n
 If you want to search all faces of the card you must set `search_all_faces=True` when querying. It might take some trial
 and error at first to get what you exactly want.
 
-```
->>> multifaced_cards = 2 * cards.where_exactly(name='Akki Lavarunner // Tok-Tok, Volcano Born')[0:1]
->>> multifaced_cards += 2 * cards.where_exactly(name='Accursed Witch // Infectious Curse')[0:1]
->>> print(multifaced_cards.where(type_line='Enchantment'))
-
+``` python
+multifaced_cards = 2 * cards.where_exactly(name='Akki Lavarunner // Tok-Tok, Volcano Born')[0:1]
+multifaced_cards += 2 * cards.where_exactly(name='Accursed Witch // Infectious Curse')[0:1]
+print(multifaced_cards.where(type_line='Enchantment'))
+``` 
+``` 
 [Accursed Witch // Infectious Curse (soi), Accursed Witch // Infectious Curse (soi)]
-
->>> print(multifaced_cards.where(power='2', toughness='2', search_all_faces=True).where(colors='R'))
-
+``` 
+``` python
+print(multifaced_cards.where(power='2', toughness='2', search_all_faces=True).where(colors='R'))
+``` 
+``` 
 [Akki Lavarunner // Tok-Tok, Volcano Born (chk), Akki Lavarunner // Tok-Tok, Volcano Born (chk)]
 ```
 
@@ -450,23 +632,26 @@ returns dicts with group identities as keys and cards lists corresponding the gr
 color identity, the keys will always have an alphabetical order like 'BR' and 'GUW' instead of the normal
 'WUBRG' - order.
 
-```
->>> some_cards = 2 * cards.where_exactly(name='Werebear')[:1] + 2 * cards.where_exactly(name='Firebolt')[:1]
->>> some_cards += 2 * cards.where_exactly(name='Forest')[:1] + 2 * cards.where_exactly(name='Act of Treason')[:1]
->>> csome_cards += 2 * cards.where_exactly(name='Bristling Boar')[:1] + 2 * cards.where_exactly(name='Cleansing Nova')[:1]
+``` python
+some_cards = 2 * cards.where_exactly(name='Werebear')[:1] + 2 * cards.where_exactly(name='Firebolt')[:1]
+some_cards += 2 * cards.where_exactly(name='Forest')[:1] + 2 * cards.where_exactly(name='Act of Treason')[:1]
+csome_cards += 2 * cards.where_exactly(name='Bristling Boar')[:1] + 2 * cards.where_exactly(name='Cleansing Nova')[:1]
 
->>> for (key, val) in some_cards.grouped_by_converted_mana_cost().items():
+for (key, val) in some_cards.grouped_by_converted_mana_cost().items():
         print(key,':', val)
-
+``` 
+``` 
 0.0 : [Forest (pss3), Forest (pss3)]
 2.0 : [Werebear (ema), Werebear (ema)]
 3.0 : [Act of Treason (m19), Act of Treason (m19)]
 4.0 : [Arcades, the Strategist (m19), Arcades, the Strategist (m19), Bristling Boar (m19), Bristling Boar (m19)]
 5.0 : [Cleansing Nova (m19), Cleansing Nova (m19)]
-
->>> for (key, val) in some_cards.grouped_by_color().items():
+``` 
+``` python
+for (key, val) in some_cards.grouped_by_color().items():
         print(key, ':', val)
-
+``` 
+``` 
     : [Forest (pss3), Forest (pss3)]
 GUW : [Arcades, the Strategist (m19), Arcades, the Strategist (m19)]
 W   : [Cleansing Nova (m19), Cleansing Nova (m19)]
@@ -510,8 +695,8 @@ of cards must come before the name of the card. If no matching set is found, a c
 
 Note, that this method is useful with the whole database of cards rather than a small list.
 
-```
->>> my_deck1 = cards.from_str("""
+``` python
+my_deck1 = cards.from_str("""
 3 Raging Ravine
 1 Wooded Foothills
 4 Verdant Catacombs
@@ -556,8 +741,9 @@ SB: 2 Surgical Extraction
 SB: 1 Rakdos Charm
 SB: 1 Damnation""")
 
->>> print(my_deck1.deck_str())
-
+print(my_deck1.deck_str())
+``` 
+``` 
 // Lands (24)
 3 Raging Ravine [wwk]
 1 Wooded Foothills [g09]
@@ -609,9 +795,10 @@ SB:1 Damnation [prm]
 
 You can also structure the deck strings in different ways. For example, by color and without set codes:
 
-```
->>> print(my_deck.deck_str(group_by='color', add_set_codes=False))
-
+``` python
+print(my_deck.deck_str(group_by='color', add_set_codes=False))
+``` 
+``` 
 // Black (16)
 3 Inquisition of Kozilek
 1 Kalitas, Traitor of Ghet
@@ -671,10 +858,11 @@ for numerical attributes it is enough for the argument to be equal or larger. No
 
 Creatures in Odyssey with power > 5:
 
-```
->>> ody = sets.where_exactly(code='ody')[0]
->>> ody.creatures().where(power_num=5, invert=True).pprint()
-
+``` python
+ody = sets.where_exactly(code='ody')[0]
+ody.creatures().where(power_num=5, invert=True).pprint()
+``` 
+``` 
 Unnamed card list created at 2018-07-20 15:32:59.202900
 ---------------------------------------------------------------------------------------
 Card                    Set   Type                                   Cost        Rarity
@@ -686,10 +874,11 @@ Card                    Set   Type                                   Cost       
 
 White creatures Not including multicolors in Odyssey with power <= 2 AND toughness <= 2:
 
-```
->>> ody = sets.where_exactly(code='ody')[0]
->>> ody.creatures().where(power_num=2).where(toughness_num=2).where_exactly(colors='W').pprint()
-
+``` python
+ody = sets.where_exactly(code='ody')[0]
+ody.creatures().where(power_num=2).where(toughness_num=2).where_exactly(colors='W').pprint()
+``` 
+``` 
 Unnamed card list created at 2018-07-20 16:03:08.122375 with a total of 20 cards
 ------------------------------------------------------------------------------------------
 Card                      Set   Type                                Cost        Rarity
@@ -718,10 +907,11 @@ Card                      Set   Type                                Cost        
 
 Auras in Odyssey with cmc <= 2:
 
-```
->>> ody = sets.where_exactly(code='ody')[0]
->>> ody.where(cmc=2).where(type_line='aura').pprint()
-
+``` python
+ody = sets.where_exactly(code='ody')[0]
+ody.where(cmc=2).where(type_line='aura').pprint()
+``` 
+``` 
 Unnamed card list created at 2018-07-20 16:05:48.340844 with a total of 7 cards
 -------------------------------------------------------------------
 Card                 Set   Type                 Cost     Rarity
@@ -740,29 +930,31 @@ Card                 Set   Type                 Cost     Rarity
 A good guide about saving things in ZODB can be found here:
 http://www.zodb.org/en/latest/guide/writing-persistent-objects.html
 
-Any objects mentioned above are already Persistent, so they can be conveniently saved. For example any `PCardList`
-objects can easily be saved with
+In general, you can save and modify any Persistent objects or lists (like PersistentList) in the `root` of the database
+and the commit the changes with `mtg_db.commit()`. Any objects mentioned above are already Persistent, so they can be 
+conveniently saved. For example any `PCardList` objects can easily be saved with
 
-```
->>> my_favourite_cards = cards.where_exactly(name='Counterspell', set='plgm') + cards.where_exactly(name='Cancel', set='p10')
->>> my_favourite_cards.name = 'My fav cards'
->>> mtg_db.root.my_favourite_cards = my_favourite_cards
->>> mtg_db.commit()
+``` python
+my_favourite_cards = cards.where_exactly(name='Counterspell', set='plgm') + cards.where_exactly(name='Cancel', set='p10')
+my_favourite_cards.name = 'My fav cards'
+mtg_db.root.my_favourite_cards = my_favourite_cards
+mtg_db.commit()
 ```
 
 You can then easily later append more cards with
 
-```
->>> mtg_db.root.my_favourite_cards.append(cards.where_exactly(name='Mana drain')[0])
->>> mtg_db.commit()
+``` python
+mtg_db.root.my_favourite_cards.append(cards.where_exactly(name='Mana drain')[0])
+mtg_db.commit()
 ```
 
 and access them later with
 
-```
->>> my_fav_cards = mtg_db.root.my_favourite_cards
->>> my_fav_cards.pprint()
-
+``` python
+my_fav_cards = mtg_db.root.my_favourite_cards
+my_fav_cards.pprint()
+``` 
+``` 
 Card list "My fav cards" created at 2018-07-18 18:36:54.135282
 -----------------------------------------------------
 Card             Set    Type      Cost        Rarity
@@ -775,10 +967,10 @@ Card             Set    Type      Cost        Rarity
 You can similarly save decks or other card lists for example by using a `PersistentList` which works almost like a
 normal Python list:
 
-```
->>> from persistent.list import PersistentList
+``` python
+from persistent.list import PersistentList
 
->>> my_deck1 = cards.from_str("""
+my_deck1 = cards.from_str("""
 3 Raging Ravine
 1 Wooded Foothills
 4 Verdant Catacombs
@@ -823,7 +1015,7 @@ SB: 2 Surgical Extraction
 SB: 1 Rakdos Charm
 SB: 1 Damnation""")
 
->>> my_deck2 = cards.from_str("""
+my_deck2 = cards.from_str("""
 //Main
 4 Baral, Chief of Compliance
 4 Desperate Ritual
@@ -857,9 +1049,9 @@ SB: 2 Pyromancer Ascension
 SB: 1 Shattering Spree
 SB: 1 Wipe Away
 """)
->>> my_decks = PersistentList(my_deck1, my_deck2)
->>> mtg_db.root.my_decks = my_decks
->>> mtg_db.commit()
+my_decks = PersistentList(my_deck1, my_deck2)
+mtg_db.root.my_decks = my_decks
+mtg_db.commit()
 ```
 
 and then later on you can append more lists and access them the same way with single cards.
@@ -870,17 +1062,18 @@ there already exists the method `create_id_index` which returns a `BTree` in whi
 'id' values and each id maps to a single card object found in the original list. This is handy if called on the whole
 database and saved:
 
-```
->>> my_card_index = cards.create_id_index()
->>> mtg_db.root.my_card_index = my_card_index
->>> mtg_db.commit()
+``` python
+my_card_index = cards.create_id_index()
+mtg_db.root.my_card_index = my_card_index
+mtg_db.commit()
 ```
 
 Now single cards can be speedily retrieved from the index by using their `id`'s:
 
-```
->>> print(mtg_db.root.my_card_index['0a448077-3b1f-4efd-a606-e3ff40fe1621'])
-
+``` python
+print(mtg_db.root.my_card_index['0a448077-3b1f-4efd-a606-e3ff40fe1621'])
+``` 
+``` 
 Counterspell (wc00)
 ```
 
@@ -901,9 +1094,10 @@ The sets are saved in the database as a `PSetList`.
 
 Sets in Masques block:
 
+``` python
+sets.where(block='Masques').pprint()
+``` 
 ```
->>> sets.where(block='Masques').pprint()
-
 Unnamed set list created at 2018-07-18 13:39:44.602675
 -----------------------------------------------------
 Set                 Code  Block     Type        Cards
@@ -915,9 +1109,10 @@ Mercadian Masques   mmq   Masques   expansion   350
 
 All the sets containing a Negate:
 
-```
->> sets.filtered(lambda pset: any(pset.where_exactly(name='Negate'))).pprint()
-
+``` python
+sets.filtered(lambda pset: any(pset.where_exactly(name='Negate'))).pprint()
+``` 
+``` 
 Unnamed set list created at 2018-07-18 13:39:52.329598
 ---------------------------------------------------------------------------------
 Set                          Code  Block                 Type               Cards
@@ -944,15 +1139,16 @@ Magic Online Promos          prm                         promo              1198
 
 Normal standard-legal sets without promos:
 
-```
->>> standard_sets = sets.where(set_type='promo', invert=True)
->>> def standard_legal(pset):
+``` python
+standard_sets = sets.where(set_type='promo', invert=True)
+def standard_legal(pset):
         return len(pset) and len(pset) == len(
             pset.filtered(lambda card: card.legalities['standard'] == 'legal' or card.legalities['standard'] == 'banned')
         )
 
->>> standard_sets.filtered(standard_legal).pprint()
-
+standard_sets.filtered(standard_legal).pprint()
+``` 
+``` 
 Unnamed set list created at 2018-07-23 12:33:31.340701
 --------------------------------------------------------
 Set                   Code  Block      Type        Cards
@@ -985,15 +1181,30 @@ You can find the whole documentation here: https://zodb.org/en/latest/_modules/Z
 
 ## Notes and possible problems
 
+#### Indexing and searching
+
+This kind of database is not a "traditional" relational database and it does not come with a Query Engine or a 
+Query Language right out of the box. This project implements some basic searching and filtering which in general 
+should be good enough for most simple use cases. However, as the database and the number of cards grows larger all 
+the time, the database is quite slow and uses a lot of memory. The scryfall database already contains some datasets
+which are huge and probably too much for this app to handle in a reasonable way.
+
+The basic search "engine" is not at all optimized and the lack of indexes basically means that the whole database 
+is scanned for every search and the objects are always loaded into memory. It might not be the worst thing yet, 
+but a some sort of indexing support might be a good idea in the future. On paper, the indexes are not particularly 
+hard to implement with ZODB and BTrees, but handling edge cases and special cards might be tricky (for example cards 
+with multiple faces and different attributes in each face).
+
 #### Possible bugs
 
 The tools are somewhat decently tested for Scryfall data but some bugs and weird behavior are to be expected,
 especially with some special cards.
 
 Currently, the data from magicthegathering.io is not tested but it should still work quite like Scryfall data. If you
-are using mtgio, be mindful of the differences between them.
+are using mtgio, be mindful of the differences between them. Also note, that mtgio now seems to be part of Scrydex
+and might not be available in the future.
 
-#### Some things about the database
+#### Some other notes about the database
 
 - Be mindful when using multiple different storages and formatting/re-updating old ones when you have saved your own
   lists. If something goes wrong and the old objects in the base of the database get replaced by new objects, the old
