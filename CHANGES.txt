@@ -76,5 +76,11 @@
 - Added the len-property to PCardList and PSetList (a synonym for the inbuilt len())
 - Fixed the index-method of PSetList which always returned None
 - Changed/Corrected the __sub__ behaviour of PCardList to remove only the given number(s) of card(s) from the list
-  instead of all the copies. For example, the operation 'four_wild_mongrels - one_wild_mongrel == three_wild_mongrels
-  instead of the old behaviour 'four_wild_mongrels - one_wild_mongrel == empty_pcard_list'
+  instead of all the copies. The copies are removed beginning from the FIRST found occurance in the list. For 
+  example, the operation 'four_wild_mongrels - one_wild_mongrel' equals to three_wild_mongrels instead of the 
+  old behaviour 'four_wild_mongrels - one_wild_mongrel == empty_pcard_list'
+
+Other changes not related to the functionality
+- Added a better system test setup along with a set of more comprehensive tests
+- Cleaned up and formatted the repo. Black is the new default formatter.
+- Changed the license of the project to MIT, which is more standard for these kinds of projects.
