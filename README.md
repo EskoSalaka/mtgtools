@@ -446,7 +446,8 @@ print(werebears)
 ```
 
 Cards can be removed from lists with subtraction or with the common list method `remove`. Subtraction works with lists
-and single card objects and it is basically the same as set subtraction:
+and single card objects and it functions similarly to the 'remove' method except it returns a new list and only the 
+given amount(s) of card(s) are removed from the list starting from the first found instance(s) of the card(s) in the list.
 
 ``` python
 werebears = cards.where_exactly(name='Werebear')
