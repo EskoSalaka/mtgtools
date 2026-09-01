@@ -1551,6 +1551,22 @@ class PCardList(Persistent):
         return self.__len__()
 
     @property
+    def first(self):
+        """Returns the first card in this PCardList, or None if the list is empty."""
+        try:
+            return self.cards[0]
+        except IndexError:
+            return None
+
+    @property
+    def last(self):
+        """Returns the last card in this PCardList, or None if the list is empty."""
+        try:
+            return self.cards[-1]
+        except IndexError:
+            return None
+
+    @property
     def api_type(self):
         try:
             return self.cards[0].api_type

@@ -378,6 +378,22 @@ class PSetList(Persistent):
         return self.__len__()
 
     @property
+    def first(self):
+        """Returns the first set in this PSetList, or None if the list is empty."""
+        try:
+            return self._sets[0]
+        except IndexError:
+            return None
+
+    @property
+    def last(self):
+        """Returns the last set in this PSetList, or None if the list is empty."""
+        try:
+            return self._sets[-1]
+        except IndexError:
+            return None
+
+    @property
     def json(self):
         return json.dumps({"sets": [json.loads(pset.json) for pset in self.sets]}, sort_keys=True, indent=4)
 
