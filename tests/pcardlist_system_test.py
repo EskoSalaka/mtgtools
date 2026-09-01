@@ -626,6 +626,123 @@ class TestPCardListSystem(MtgDBSystemSetupTest):
         self.assertEqual(test_cards.where(name="Raging Ravine").len, 3)
         self.assertEqual(test_cards.where(name="Wooded Foothills").len, 1)
         self.assertEqual(test_cards.where(name="Verdant Catacombs").len, 4)
+        self.assertEqual(test_cards.where(name="Stomping Ground").len, 1)
+        self.assertEqual(test_cards.where(name="Overgrown Tomb").len, 2)
+        self.assertEqual(test_cards.where(name="Blood Crypt").len, 1)
+        self.assertEqual(test_cards.where(name="Blackcleave Cliffs").len, 4)
+        self.assertEqual(test_cards.where(name="Swamp").len, 2)
+        self.assertEqual(test_cards.where(name="Forest").len, 1)
+        self.assertEqual(test_cards.where(name="Bloodstained Mire").len, 4)
+
+        self.assertEqual(test_cards.where(name="Huntmaster of the Fells").len, 2)
+        self.assertEqual(test_cards.where(name="Dark Confidant").len, 4)
+        self.assertEqual(test_cards.where(name="Scavenging Ooze").len, 2)
+        self.assertEqual(test_cards.where(name="Tarmogoyf").len, 4)
+        self.assertEqual(test_cards.where(name="Fulminator Mage").len, 1)
+
+        self.assertEqual(test_cards.where(name="Chandra, Torch of Defiance").len, 1)
+        self.assertEqual(test_cards.where(name="Liliana of the Veil").len, 4)
+
+        self.assertEqual(test_cards.where(name="Kolaghan's Command").len, 1)
+        self.assertEqual(test_cards.where(name="Lightning Bolt").len, 4)
+        self.assertEqual(test_cards.where(name="Terminate").len, 3)
+        self.assertEqual(test_cards.where(name="Thoughtseize").len, 3)
+        self.assertEqual(test_cards.where(name="Abrupt Decay").len, 2)
+        self.assertEqual(test_cards.where(name="Inquisition of Kozilek").len, 3)
+
+        self.assertEqual(test_cards.where(name="Fatal Push").len, 1)
+        self.assertEqual(test_cards.where(name="Blooming Marsh").len, 1)
+        self.assertEqual(test_cards.where(name="Kalitas, Traitor of Ghet").len, 1)
+
+        for card in test_cards.sideboard[0:3]:
+            self.assertEqual(card.name, "Fulminator Mage")
+
+        for card in test_cards.sideboard[3:5]:
+            self.assertEqual(card.name, "Collective Brutality")
+
+        for card in test_cards.sideboard[5:6]:
+            self.assertEqual(card.name, "Anger of the Gods")
+
+        for card in test_cards.sideboard[6:7]:
+            self.assertEqual(card.name, "Kolaghan's Command")
+
+        for card in test_cards.sideboard[7:9]:
+            self.assertEqual(card.name, "Ancient Grudge")
+
+        for card in test_cards.sideboard[9:10]:
+            self.assertEqual(card.name, "Maelstrom Pulse")
+
+        for card in test_cards.sideboard[10:11]:
+            self.assertEqual(card.name, "Liliana, the Last Hope")
+
+        for card in test_cards.sideboard[11:13]:
+            self.assertEqual(card.name, "Surgical Extraction")
+
+        for card in test_cards.sideboard[13:14]:
+            self.assertEqual(card.name, "Rakdos Charm")
+
+        for card in test_cards.sideboard[14:15]:
+            self.assertEqual(card.name, "Damnation")
+
+    def test_from_str_should_read_set_and_coll_num(self):
+        test_cards = self.cards.from_str("""
+        //Comment
+        Forest
+        Island
+        4 Wild Mongrel
+        4 Werebear [ody]
+        4 Werebear [ody 282]
+                //      Comment
+        4 Werebear (dmr)
+        4 Werebear (dmr 182)
+        //4 Werebear (dmr 182)
+
+        //Comment
+        SB: Forest
+        SB: Island
+        SB: 4 Wild Mongrel
+        SB: 4 Werebear [ody]
+       
+        SB: 4 Werebear [ody 282]
+        SB:4 Werebear (dmr)
+        SB:4 Werebear (dmr 182)
+        // SB:4 Werebear (dmr 182)
+        
+        """)
+
+        self.assertEqual(test_cards.len, 22)
+
+        wody = test_cards.where_exactly(name="Werebear", set="ody")
+        self.assertEqual(wody.len, 8)
+
+        wdmr = test_cards.where_exactly(name="Werebear", set="dmr")
+        self.assertEqual(wdmr.len, 8)
+
+        mongrels = test_cards.where_exactly(name="Wild Mongrel")
+        self.assertEqual(mongrels.len, 4)
+
+        forests = test_cards.where_exactly(name="Forest")
+        self.assertEqual(forests.len, 1)
+
+        islands = test_cards.where_exactly(name="Island")
+        self.assertEqual(islands.len, 1)
+
+        # Sideboard should be indentical to mainboard in terms of card counts and sets
+        self.assertEqual(len(test_cards.sideboard), 22)
+
+        self.assertEqual(test_cards.sideboard[0].name, "Forest")
+        self.assertEqual(test_cards.sideboard[1].name, "Island")
+
+        for mongrels in test_cards.sideboard[2:6]:
+            self.assertEqual(mongrels.name, "Wild Mongrel")
+
+        for werebear in test_cards.sideboard[6:14]:
+            self.assertEqual(werebear.name, "Werebear")
+            self.assertEqual(werebear.set, "ody")
+
+        for werebear in test_cards.sideboard[14:22]:
+            self.assertEqual(werebear.name, "Werebear")
+            self.assertEqual(werebear.set, "dmr")
 
     def test_deck_str_group_by_type(self):
         test_cards = self.cards.from_str("""

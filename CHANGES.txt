@@ -72,6 +72,8 @@
 - Removed the slow pack-operation from database updates. The pack can be done separately if needed
 - Fixed certain methods of PCardList which fail to sort of group a PCardlists that include some special cards
   that have no cmc
+- Fixed reading desk strings for the 'deck_str'-method of 'PCardList' which would fail for lines that have the set code
+  and the collector number surrounded by the characters '()', which should be allowed
 - Fixed errors in generating the json-outputs
 - Added the len-property to PCardList and PSetList (a synonym for the inbuilt len())
 - Fixed the index-method of PSetList which always returned None

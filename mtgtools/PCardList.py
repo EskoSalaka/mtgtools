@@ -1295,8 +1295,8 @@ class PCardList(Persistent):
         eg.
         --------------------------------------
         //Creatures (8)
-        1 Wild Mongrel [od]
-        4 Aquamoeba [od]
+        1 Wild Mongrel [ody]
+        4 Aquamoeba [ody]
         2 Werebear
         noose constrictor
 
@@ -1319,71 +1319,83 @@ class PCardList(Persistent):
         set_codes = {card.set for card in self.cards}
 
         for line in (_.strip() for _ in card_list_str.splitlines()):
+            # ignore empty lines and comments
+            if not line or line[0:2] == "//":
+                continue
+
             sb = False
 
-            if line and line[0:2] != "//":
-                if line[0:3] == "SB:":
-                    sb = True
-                    line = line[3:]
+            # lines starting with the prefix 'SB:' are added in the sideboard of the list
+            if line[0:3] == "SB:":
+                sb = True
+                line = line[3:]
 
-                num = int(line.split()[0]) if line.split()[0].isdigit() else 1
+            # extract the number of cards from the line, if it is not specified, default to 1
+            num = int(line.split()[0]) if line.split()[0].isdigit() else 1
 
-                name = line.split(maxsplit=1)[1] if line.split()[0].isdigit() else line
-                name = name.split("[")[0] if "[" in name and "]" in name else name
-                name = name.strip()
+            # extract the card name from the line
+            name = line.split(maxsplit=1)[1] if line.split()[0].isdigit() else line
 
-                if "(" in line and ")" in line:
-                    cl = line[line.find("(") + 1 : line.find(")")].strip()
-                    set_code = cl.split()[0] if len(cl.split()) > 0 else None
-                    collector_number = cl.split()[1] if len(cl.split()) > 1 else None
-                elif "[" in line and "]" in line:
-                    cl = line[line.find("[") + 1 : line.find("]")].strip()
-                    set_code = cl.split()[0] if len(cl.split()) > 0 else None
-                    collector_number = cl.split()[1] if len(cl.split()) > 1 else None
-                else:
-                    set_code = None
+            if "(" in name and ")" in name:
+                name = name.split("(")[0]
+            elif "[" in name and "]" in name:
+                name = name.split("[")[0]
 
-                if set_code and set_code not in set_codes:
-                    msg = "Could not find any matching {} API set code for the line --{}--"
-                    warnings.warn(msg.format(self.api_type, line))
-                    set_code = None
+            name = name.strip()
 
-                try:
-                    if set_code:
-                        if collector_number:
-                            card = self.where_exactly(
-                                name=name,
-                                set=set_code,
-                                search_all_faces=True,
-                                collector_number=collector_number,
-                                **kwargs,
-                            )[0]
-                        else:
-                            card = self.where_exactly(
-                                name=name,
-                                set=set_code,
-                                search_all_faces=True,
-                                **kwargs,
-                            )[0]
+            # extract the set code and collector number if they are present in the line
+            if "(" in line and ")" in line:
+                cl = line[line.find("(") + 1 : line.find(")")].strip()
+                set_code = cl.split()[0] if len(cl.split()) > 0 else None
+                collector_number = cl.split()[1] if len(cl.split()) > 1 else None
+            elif "[" in line and "]" in line:
+                cl = line[line.find("[") + 1 : line.find("]")].strip()
+                set_code = cl.split()[0] if len(cl.split()) > 0 else None
+                collector_number = cl.split()[1] if len(cl.split()) > 1 else None
+            else:
+                set_code = None
+
+            if set_code and set_code not in set_codes:
+                msg = "Could not find any matching {} API set code for the line --{}--"
+                warnings.warn(msg.format(self.api_type, line))
+                set_code = None
+
+            try:
+                if set_code:
+                    if collector_number:
+                        card = self.where_exactly(
+                            name=name,
+                            set=set_code,
+                            search_all_faces=True,
+                            collector_number=collector_number,
+                            **kwargs,
+                        )[0]
                     else:
                         card = self.where_exactly(
                             name=name,
+                            set=set_code,
                             search_all_faces=True,
                             **kwargs,
-                        ).random_card()
+                        )[0]
+                else:
+                    card = self.where_exactly(
+                        name=name,
+                        search_all_faces=True,
+                        **kwargs,
+                    ).random_card()
 
-                    if sb:
-                        card_list.sideboard.extend([card for _ in range(num)])
-                    else:
-                        card_list.extend(num * (PCardList() + card))
+                if sb:
+                    card_list.sideboard.extend([card for _ in range(num)])
+                else:
+                    card_list.extend(num * (PCardList() + card))
 
-                except IndexError:
-                    msg = """
-                    Could not find any cards matching the line --{}-- with given keyword arguments --{}--.
-                    This could possibly be because of a typo, the card doesn't exist in the given set or 
-                    because there are no cards matching the given keyword arguments or collector number if any were specified
-                    """
-                    warnings.warn(dedent(msg.format(line, list(kwargs.items()))))
+            except IndexError:
+                msg = """
+                Could not find any cards matching the line --{}-- with given keyword arguments --{}--.
+                This could possibly be because of a typo, the card doesn't exist in the given set or 
+                because there are no cards matching the given keyword arguments or collector number if any were specified
+                """
+                warnings.warn(dedent(msg.format(line, list(kwargs.items()))))
 
         return card_list
 
