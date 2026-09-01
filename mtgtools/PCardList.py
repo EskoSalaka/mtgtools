@@ -1267,8 +1267,14 @@ class PCardList(Persistent):
                 dpi=(300, 300),
             )
 
-    def from_str(self, card_list_str, **kwargs):
+    def from_str(self, card_list_str, only_playable_cards=True, **kwargs):
         """Reads a given card list string and returns a new list of all the cards of this list found in the string.
+
+        For consistency, as this method is mostly used for reading deck lists, by default it parses only cards
+        that are generally considered playable in a deck. For example, it will not parse tokens, special
+        promotional cards and art-series cards. Therefore, there is no change that it parses for example
+        an art-series card for a line "1  Liliana of the Veil" (if the list happens to contain one). This
+        behavior can be overridden by setting 'only_playable_cards' to False.
 
         The string should be given in the following format as an example:
 
@@ -1314,6 +1320,7 @@ class PCardList(Persistent):
 
         Args:
             card_list_str (str): A string representing a list of cards.
+            only_playable_cards (bool): If True, only consider cards that are normally playable. Defaults to True.
             **kwargs: Arguments to match with the attributes of every card in the list (see the documentation of where).
 
         Returns:
@@ -1322,6 +1329,7 @@ class PCardList(Persistent):
 
         card_list = PCardList()
         set_codes = {card.set for card in self.cards}
+        cards_to_search = self.cards if not only_playable_cards else self.normal_playable_cards()
 
         for line in (_.strip() for _ in card_list_str.splitlines()):
             # ignore empty lines and comments
@@ -1368,7 +1376,7 @@ class PCardList(Persistent):
             try:
                 if set_code:
                     if collector_number:
-                        card = self.where_exactly(
+                        card = cards_to_search.where_exactly(
                             name=name,
                             set=set_code,
                             search_all_faces=True,
@@ -1376,14 +1384,14 @@ class PCardList(Persistent):
                             **kwargs,
                         )[0]
                     else:
-                        card = self.where_exactly(
+                        card = cards_to_search.where_exactly(
                             name=name,
                             set=set_code,
                             search_all_faces=True,
                             **kwargs,
                         )[0]
                 else:
-                    card = self.where_exactly(
+                    card = cards_to_search.where_exactly(
                         name=name,
                         search_all_faces=True,
                         **kwargs,
