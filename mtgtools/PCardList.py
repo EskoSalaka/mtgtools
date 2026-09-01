@@ -162,6 +162,51 @@ class PCardList(Persistent):
     def __len__(self):
         return len(self.cards)
 
+    def __scan(self, invert=False, search_all_faces=False, limit=None, exact=False, **kwargs):
+        del_keys = []
+        card_iter = self
+
+        if limit is not None and (not isinstance(limit, int) or limit <= 0):
+            raise ValueError("'limit' must be a positive number if specified.")
+
+        for key, val in kwargs.items():
+            if val is None:
+                msg = "Ignoring an empty or null value for keyword {}. Null or empty values are not supported."
+                warnings.warn(msg.format(key))
+                del_keys.append(key)
+            elif len(self.cards) == 0:
+                msg = "Searching an empty list."
+                warnings.warn(msg)
+            elif not hasattr(self.cards[0], key):
+                msg = "Ignoring an unrecognized keyword {}. Make sure you are using correct api type and spelling."
+                warnings.warn(msg.format(key))
+                del_keys.append(key)
+            elif key == "card_faces":
+                msg = 'Ignoring keyword "card_faces". Searching by this keyword is not supported'
+                warnings.warn(msg)
+                del_keys.append(key)
+
+        for key in del_keys:
+            del kwargs[key]
+
+        matching_cards = []
+        found = 0
+        for card in card_iter:
+            if exact:
+                if card.matches_all(search_all_faces=search_all_faces, **kwargs) != invert:
+                    matching_cards.append(card)
+                    found += 1
+
+            else:
+                if card.matches_any(search_all_faces=search_all_faces, **kwargs) != invert:
+                    matching_cards.append(card)
+                    found += 1
+
+            if limit is not None and found == limit:
+                break
+
+        return PCardList(matching_cards)
+
     def append(self, card):
         """Adds a card object to the end of the list in-place.
 
@@ -274,11 +319,13 @@ class PCardList(Persistent):
         """
         return PCardList(list(filter(func, self._cards)))
 
-    def where(self, invert=False, search_all_faces=False, **kwargs):
+    def where(self, invert=False, search_all_faces=False, limit=None, **kwargs):
         """Returns a new list of cards for which any of the given keyword arguments match partly or completely with the
         attributes of the cards in this list. The arguments should be any card attribute names such as 'power',
         'toughness' and 'name'. String attributes are case insensitive and it is enough that the argument is a
         substring. For list arguments the order does not matter and it is enough for one of the elements to match.
+        The optional 'limit' argument restricts the number of matching cards returned, which should be faster than
+        scanning the whole list.
 
         Scryfall card objects contain the 'card_faces' attribute which holds data of the possible flipsides or backsides
         of certain cards like 'Akki Lavarunner // Tok-Tok, Volcano Born'. By default, if the card has different faces
@@ -293,43 +340,21 @@ class PCardList(Persistent):
             search_all_faces (bool): (only for Scryfall cards) If True, searches all the cards faces of this lists'
                 cards instead of the first one
             invert: If True, a list of cards NOT matching the arguments is returned
+            limit (num): If specified, only the first 'limit' matching cards are returned.
             **kwargs: Arguments to match with the attributes of this list's cards.
 
         Returns:
             bool: A new list of cards for which the given keyword arguments match partly or completely.
         """
-        del_keys = []
 
-        for key, val in kwargs.items():
-            if val is None:
-                msg = "Ignoring an empty or null value for keyword {}. Null or empty values are not supported."
-                warnings.warn(msg.format(key))
-                del_keys.append(key)
-            elif len(self.cards) == 0:
-                msg = "Searching an empty list."
-                warnings.warn(msg)
-            elif not hasattr(self.cards[0], key):
-                msg = "Ignoring an unrecognized keyword {}. Make sure you are using correct api type and spelling."
-                warnings.warn(msg.format(key))
-                del_keys.append(key)
-            elif key == "card_faces":
-                msg = 'Ignoring keyword "card_faces". Searching by this keyword is not supported'
-                warnings.warn(msg)
-                del_keys.append(key)
+        return self.__scan(search_all_faces=search_all_faces, invert=invert, limit=limit, exact=False, **kwargs)
 
-        for key in del_keys:
-            del kwargs[key]
-
-        if not invert:
-            return PCardList([card for card in self if card.matches_any(search_all_faces, **kwargs)])
-        else:
-            return PCardList([card for card in self if not card.matches_any(search_all_faces, **kwargs)])
-
-    def where_exactly(self, invert=False, search_all_faces=False, **kwargs):
+    def where_exactly(self, invert=False, search_all_faces=False, limit=None, **kwargs):
         """Returns a new list of cards for which the given keyword arguments match completely with the attributes
         of the cards in this list. The arguments should be any card attribute names such as 'power',  'toughness' and
         'name'. String attributes are case insensitive and must match exactly. For list arguments the order does not
-        matter and and each element must match exactly.
+        matter and and each element must match exactly. The optional 'limit' argument restricts the number of matching
+        cards returned, which should be faster than scanning the whole list.
 
         Scryfall card objects contain the 'card_faces' attribute which holds data of the possible flipsides or backsides
         of certain cards like 'Akki Lavarunner // Tok-Tok, Volcano Born'. By default, if the card has different faces
@@ -345,37 +370,14 @@ class PCardList(Persistent):
             search_all_faces (bool): (only for Scryfall cards) If True, searches all the cards faces of this lists'
                 cards instead of the first one
             invert: If True, a list of cards NOT matching the arguments is returned
+            limit (num): If specified, only the first 'limit' matching cards are returned.
             **kwargs: Arguments to match with the attributes of this list's cards.
 
         Returns:
             bool: A new list of cards for which the given keyword arguments match completely.
         """
-        del_keys = []
 
-        for key, val in kwargs.items():
-            if val is None:
-                msg = "Ignoring an empty or null value for keyword {}. Null or empty values are not supported."
-                warnings.warn(msg.format(key))
-                del_keys.append(key)
-            elif len(self.cards) == 0:
-                msg = "Searching an empty list."
-                warnings.warn(msg)
-            elif not hasattr(self.cards[0], key):
-                msg = "Ignoring an unrecognized keyword {}. Make sure you are using correct api type and spelling."
-                warnings.warn(msg.format(key))
-                del_keys.append(key)
-            elif key == "card_faces":
-                msg = 'Ignoring keyword "card_faces". Searching with this keyword is not supported'
-                warnings.warn(msg)
-                del_keys.append(key)
-
-        for key in del_keys:
-            del kwargs[key]
-
-        if not invert:
-            return PCardList([card for card in self if card.matches_all(search_all_faces, **kwargs)])
-        else:
-            return PCardList([card for card in self if not card.matches_all(search_all_faces, **kwargs)])
+        return self.__scan(search_all_faces=search_all_faces, invert=invert, limit=limit, exact=True, **kwargs)
 
     def has_all(self, cards):
         """Returns true if this list contains all the given cards.

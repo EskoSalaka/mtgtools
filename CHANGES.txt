@@ -70,6 +70,8 @@
 - Added and refined some pretty-printing functions for the Persistent objects (PCard, PCardList, PSet, PRuling, PSetList)
 - Added the inbuild __reversed__ method to PCardList and PSetList, which mirrors the same function for general iterables
 - Added the 'first' and 'last' attributes to PCardList and PSetList
+- Added the 'limit' arg to the where and where_exactly methods of PCardList which limits the amount of results returned 
+  by the search
 - The unique_cards, pprint and pretty_print_str methods of PCardList now retain the ordering of the cards in the list
 - Removed the slow pack-operation from database updates. The pack can be done separately if needed
 - Fixed certain methods of PCardList which fail to sort of group a PCardlists that include some special cards
