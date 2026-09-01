@@ -69,6 +69,9 @@ class PCardList(Persistent):
     def __setitem__(self, key, val):
         self._cards.__setitem__(key, val)
 
+    def __reversed__(self):
+        return reversed(self._cards)
+
     def __iter__(self):
         return iter(self._cards)
 

@@ -100,6 +100,9 @@ class PSetList(Persistent):
         if isinstance(other, PSetList):
             return self.id == other.id
 
+    def __reversed__(self):
+        return reversed(self._sets)
+
     def append(self, pset):
         """Appends the given set object to this list in-place.
 
