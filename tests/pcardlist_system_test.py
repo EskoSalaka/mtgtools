@@ -516,6 +516,48 @@ class TestPCardListSystem(MtgDBSystemSetupTest):
 
             self.assertEqual(len(w), 4)
 
+    def test_limit_should_raise(self):
+        with self.assertRaises(ValueError):
+            self.testlist.where(limit=0, name="test")
+
+        with self.assertRaises(ValueError):
+            self.testlist.where(limit=-1, name="test")
+
+    def test_where_limit(self):
+        werebears = self.cards.where_exactly(name="Werebear", limit=4)
+        mongrels = 4 * self.cards.where_exactly(name="Wild Mongrel")[0:1]
+        werebears = werebears + mongrels
+        self.assertEqual(len(werebears), 8)
+
+        first = werebears.where(name="Werebear", limit=1)
+        self.assertEqual(len(first), 1)
+        self.assertEqual(first[0] == werebears[0], True)
+
+        first_2 = werebears.where(name="Werebear", limit=2)
+        self.assertEqual(len(first_2), 2)
+        self.assertEqual(first_2[0] == werebears[0], True)
+        self.assertEqual(first_2[1] == werebears[1], True)
+
+        first_3 = werebears.where(name="Werebear", limit=3)
+        self.assertEqual(len(first_3), 3)
+        self.assertEqual(first_3[0] == werebears[0], True)
+        self.assertEqual(first_3[1] == werebears[1], True)
+        self.assertEqual(first_3[2] == werebears[2], True)
+
+        first_4 = werebears.where(name="Werebear", limit=4)
+        self.assertEqual(len(first_4), 4)
+        self.assertEqual(first_4[0] == werebears[0], True)
+        self.assertEqual(first_4[1] == werebears[1], True)
+        self.assertEqual(first_4[2] == werebears[2], True)
+        self.assertEqual(first_4[3] == werebears[3], True)
+
+        every = werebears.where(name="Werebear", limit=10000)
+        self.assertEqual(len(every), 4)
+        self.assertEqual(every[0] == werebears[0], True)
+        self.assertEqual(every[1] == werebears[1], True)
+        self.assertEqual(every[2] == werebears[2], True)
+        self.assertEqual(every[3] == werebears[3], True)
+
     def test_unique_cards(self):
         testcards = 4 * self.testlist.where_exactly(name="Wild Mongrel")[0:1]
         testcards += 3 * self.testlist.where_exactly(name="Aquamoeba")[0:1]
@@ -790,6 +832,8 @@ class TestPCardListSystem(MtgDBSystemSetupTest):
         SB: 1 Rakdos Charm
         SB: 1 Damnation""")
 
+        self.assertEqual(test_cards.len, 60)
+
         dstring = test_cards.deck_str(group_by="type")
 
         self.assertEqual(dstring.count("// Creatures (14)"), 1)
@@ -853,6 +897,8 @@ class TestPCardListSystem(MtgDBSystemSetupTest):
         SB: 2 Surgical Extraction
         SB: 1 Rakdos Charm
         SB: 1 Damnation""")
+
+        self.assertEqual(test_cards.len, 60)
 
         dstring = test_cards.deck_str(group_by="color")
 
@@ -918,8 +964,9 @@ class TestPCardListSystem(MtgDBSystemSetupTest):
         SB: 1 Rakdos Charm
         SB: 1 Damnation""")
 
+        self.assertEqual(test_cards.len, 60)
+
         dstring = test_cards.deck_str(group_by="cmc")
-        print(dstring)
 
         self.assertEqual(dstring.count("// 0 (24)"), 1)
         self.assertEqual(dstring.count("// 1 (11)"), 1)
@@ -931,9 +978,26 @@ class TestPCardListSystem(MtgDBSystemSetupTest):
         self.assertEqual(dstring.count("1 Wooded Foothills"), 1)
         self.assertEqual(dstring.count("4 Verdant Catacombs"), 1)
 
+        self.assertEqual(dstring.count("// Sideboard (15)"), 1)
         self.assertEqual(dstring.count("SB:"), 10)
         self.assertEqual(dstring.count("SB: 1 Liliana, the Last Hope"), 1)
         self.assertEqual(dstring.count("SB: 2 Ancient Grudge"), 1)
+
+    def test_first(self):
+        werebears = self.cards.where_exactly(name="Werebear", limit=4)
+        self.assertTrue(werebears.len == 4)
+        self.assertTrue(werebears.first == werebears[0])
+
+    def test_last(self):
+        werebears = self.cards.where_exactly(name="Werebear", limit=4)
+        self.assertTrue(werebears.len == 4)
+        self.assertTrue(werebears.last == werebears[-1])
+
+    def test_first_last_empty(self):
+        empty = PCardList()
+        self.assertTrue(empty.len == 0)
+        self.assertTrue(empty.first is None)
+        self.assertTrue(empty.last is None)
 
     @unittest.skip("Skipping test with heavy load.")
     def test_pprint_global(self):
