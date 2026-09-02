@@ -21,5 +21,6 @@ tests/testdb.fs.index
 tests/testdb.fs.lock
 tests/testdb.fs.old
 tests/testdb.fs.tmp
+tests/data/scryfall.fs*
 tests/tests.py
 .vscode/settings.json

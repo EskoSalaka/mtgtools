@@ -1,71 +1,3 @@
-########################################################################################################################
-# Copyright © 2018 Esko-Kalervo Salaka.
-# All rights reserved.
-#
-#
-# Zope Public License (ZPL) Version 2.1
-#
-# A copyright notice accompanies this license document that identifies the
-# copyright holders.
-#
-# This license has been certified as open source. It has also been designated as
-# GPL compatible by the Free Software Foundation (FSF).
-#
-# Redistribution and use in source and binary forms, with or without
-# modification, are permitted provided that the following conditions are met:
-#
-# 1. Redistributions in source code must retain the accompanying copyright
-# notice, this list of conditions, and the following disclaimer.
-#
-# 2. Redistributions in binary form must reproduce the accompanying copyright
-# notice, this list of conditions, and the following disclaimer in the
-# documentation and/or other materials provided with the distribution.
-#
-# 3. Names of the copyright holders must not be used to endorse or promote
-# products derived from this software without prior written permission from the
-# copyright holders.
-#
-# 4. The right to distribute this software or to use it for any purpose does not
-# give you the right to use Servicemarks (sm) or Trademarks (tm) of the
-# copyright
-# holders. Use of them is covered by separate agreement with the copyright
-# holders.
-#
-# 5. If any files are modified, you must cause the modified files to carry
-# prominent notices stating that you changed the files and the date of any
-# change.
-#
-# Disclaimer
-#
-# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS ``AS IS'' AND ANY EXPRESSED
-# OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
-# OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO
-# EVENT SHALL THE COPYRIGHT HOLDERS BE LIABLE FOR ANY DIRECT, INDIRECT,
-# INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-# LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
-# PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
-# LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
-# NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE,
-# EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-#
-#
-# This software uses ZODB, a native object database for Python, which is a
-# copyright © by Zope Foundation and Contributors.
-#
-# This software uses Scryfall's rest-like API which is a copyright © by Scryfall LLC.
-#
-# This software uses rest-like API of magicthegathering.io which is a copyright © by Andrew Backes.
-#
-# This software uses the Python Imaging Library (PIL) which is a copyright © 1997-2011 by Secret Labs AB and
-# copyright © 1995-2011 by Fredrik Lundh
-#
-# All the graphical and literal information and data related to Magic: The Gathering which can be handled with this
-# software, such as card information and card images, is copyright of Wizards of the Coast LLC, a
-# Hasbro inc. subsidiary.
-#
-# This software is in no way endorsed or promoted by Scryfall, Zope Foundation, magicthegathering.io or
-# Wizards of the Coast.
-########################################################################################################################
 import datetime
 import json
 import os
@@ -105,7 +37,7 @@ class PCardList(Persistent):
         name (str): Name of the card list
     """
 
-    def __init__(self, cards=None, sideboard=None, name=''):
+    def __init__(self, cards=None, sideboard=None, name=""):
         if isinstance(cards, PCardList):
             self._cards = PersistentList(cards.cards)
         elif isinstance(cards, (list, PersistentList, tuple)):
@@ -136,6 +68,9 @@ class PCardList(Persistent):
 
     def __setitem__(self, key, val):
         self._cards.__setitem__(key, val)
+
+    def __reversed__(self):
+        return reversed(self._cards)
 
     def __iter__(self):
         return iter(self._cards)
@@ -191,13 +126,20 @@ class PCardList(Persistent):
 
     def __sub__(self, other):
         if isinstance(other, PCardList):
-            return PCardList([card for card in self.cards if card not in other.cards])
+            cards_to_remove = other.cards
         elif isinstance(other, (list, PersistentList, tuple)):
-            return PCardList([card for card in self.cards if card not in other])
+            cards_to_remove = other
         elif isinstance(other, PCard):
-            return PCardList([card for card in self.cards if card is not other])
+            cards_to_remove = [other]
         else:
             raise TypeError
+
+        remaining_cards = list(self.cards)
+        for card in cards_to_remove:
+            if card in remaining_cards:
+                remaining_cards.remove(card)
+
+        return PCardList(remaining_cards)
 
     def __mul__(self, num):
         plist = PCardList()
@@ -220,6 +162,51 @@ class PCardList(Persistent):
     def __len__(self):
         return len(self.cards)
 
+    def __scan(self, invert=False, search_all_faces=False, limit=None, exact=False, **kwargs):
+        del_keys = []
+        card_iter = self
+
+        if limit is not None and (not isinstance(limit, int) or limit <= 0):
+            raise ValueError("'limit' must be a positive number if specified.")
+
+        for key, val in kwargs.items():
+            if val is None:
+                msg = "Ignoring an empty or null value for keyword {}. Null or empty values are not supported."
+                warnings.warn(msg.format(key))
+                del_keys.append(key)
+            elif len(self.cards) == 0:
+                msg = "Searching an empty list."
+                warnings.warn(msg)
+            elif not hasattr(self.cards[0], key):
+                msg = "Ignoring an unrecognized keyword {}. Make sure you are using correct api type and spelling."
+                warnings.warn(msg.format(key))
+                del_keys.append(key)
+            elif key == "card_faces":
+                msg = 'Ignoring keyword "card_faces". Searching by this keyword is not supported'
+                warnings.warn(msg)
+                del_keys.append(key)
+
+        for key in del_keys:
+            del kwargs[key]
+
+        matching_cards = []
+        found = 0
+        for card in card_iter:
+            if exact:
+                if card.matches_all(search_all_faces=search_all_faces, **kwargs) != invert:
+                    matching_cards.append(card)
+                    found += 1
+
+            else:
+                if card.matches_any(search_all_faces=search_all_faces, **kwargs) != invert:
+                    matching_cards.append(card)
+                    found += 1
+
+            if limit is not None and found == limit:
+                break
+
+        return PCardList(matching_cards)
+
     def append(self, card):
         """Adds a card object to the end of the list in-place.
 
@@ -238,7 +225,7 @@ class PCardList(Persistent):
         self._cards.insert(index, card)
 
     def index(self, card):
-        """Returns the index where the given card object is located in the list.
+        """Returns the first index where the given card object is located in the list.
 
         Args:
             card (PCard): The card object to be searched.
@@ -332,11 +319,13 @@ class PCardList(Persistent):
         """
         return PCardList(list(filter(func, self._cards)))
 
-    def where(self, invert=False, search_all_faces=False, **kwargs):
+    def where(self, invert=False, search_all_faces=False, limit=None, **kwargs):
         """Returns a new list of cards for which any of the given keyword arguments match partly or completely with the
         attributes of the cards in this list. The arguments should be any card attribute names such as 'power',
         'toughness' and 'name'. String attributes are case insensitive and it is enough that the argument is a
         substring. For list arguments the order does not matter and it is enough for one of the elements to match.
+        The optional 'limit' argument restricts the number of matching cards returned, which should be faster than
+        scanning the whole list.
 
         Scryfall card objects contain the 'card_faces' attribute which holds data of the possible flipsides or backsides
         of certain cards like 'Akki Lavarunner // Tok-Tok, Volcano Born'. By default, if the card has different faces
@@ -351,43 +340,21 @@ class PCardList(Persistent):
             search_all_faces (bool): (only for Scryfall cards) If True, searches all the cards faces of this lists'
                 cards instead of the first one
             invert: If True, a list of cards NOT matching the arguments is returned
+            limit (num): If specified, only the first 'limit' matching cards are returned.
             **kwargs: Arguments to match with the attributes of this list's cards.
 
         Returns:
             bool: A new list of cards for which the given keyword arguments match partly or completely.
         """
-        del_keys = []
 
-        for (key, val) in kwargs.items():
-            if val is None:
-                msg = 'Ignoring an empty or null value for keyword {}. Null or empty values are not supported.'
-                warnings.warn(msg.format(key))
-                del_keys.append(key)
-            elif len(self.cards) == 0:
-                msg = 'Searching an empty list.'
-                warnings.warn(msg)
-            elif not hasattr(self.cards[0], key):
-                msg = 'Ignoring an unrecognized keyword {}. Make sure you are using correct api type and spelling.'
-                warnings.warn(msg.format(key))
-                del_keys.append(key)
-            elif key == 'card_faces':
-                msg = 'Ignoring keyword "card_faces". Searching by this keyword is not supported'
-                warnings.warn(msg)
-                del_keys.append(key)
+        return self.__scan(search_all_faces=search_all_faces, invert=invert, limit=limit, exact=False, **kwargs)
 
-        for key in del_keys:
-            del kwargs[key]
-
-        if not invert:
-            return PCardList([card for card in self if card.matches_any(search_all_faces, **kwargs)])
-        else:
-            return PCardList([card for card in self if not card.matches_any(search_all_faces, **kwargs)])
-
-    def where_exactly(self, invert=False, search_all_faces=False, **kwargs):
+    def where_exactly(self, invert=False, search_all_faces=False, limit=None, **kwargs):
         """Returns a new list of cards for which the given keyword arguments match completely with the attributes
         of the cards in this list. The arguments should be any card attribute names such as 'power',  'toughness' and
         'name'. String attributes are case insensitive and must match exactly. For list arguments the order does not
-        matter and and each element must match exactly.
+        matter and and each element must match exactly. The optional 'limit' argument restricts the number of matching
+        cards returned, which should be faster than scanning the whole list.
 
         Scryfall card objects contain the 'card_faces' attribute which holds data of the possible flipsides or backsides
         of certain cards like 'Akki Lavarunner // Tok-Tok, Volcano Born'. By default, if the card has different faces
@@ -403,37 +370,14 @@ class PCardList(Persistent):
             search_all_faces (bool): (only for Scryfall cards) If True, searches all the cards faces of this lists'
                 cards instead of the first one
             invert: If True, a list of cards NOT matching the arguments is returned
+            limit (num): If specified, only the first 'limit' matching cards are returned.
             **kwargs: Arguments to match with the attributes of this list's cards.
 
         Returns:
             bool: A new list of cards for which the given keyword arguments match completely.
         """
-        del_keys = []
 
-        for (key, val) in kwargs.items():
-            if val is None:
-                msg = 'Ignoring an empty or null value for keyword {}. Null or empty values are not supported.'
-                warnings.warn(msg.format(key))
-                del_keys.append(key)
-            elif len(self.cards) == 0:
-                msg = 'Searching an empty list.'
-                warnings.warn(msg)
-            elif not hasattr(self.cards[0], key):
-                msg = 'Ignoring an unrecognized keyword {}. Make sure you are using correct api type and spelling.'
-                warnings.warn(msg.format(key))
-                del_keys.append(key)
-            elif key == 'card_faces':
-                msg = 'Ignoring keyword "card_faces". Searching with this keyword is not supported'
-                warnings.warn(msg)
-                del_keys.append(key)
-
-        for key in del_keys:
-            del kwargs[key]
-
-        if not invert:
-            return PCardList([card for card in self if card.matches_all(search_all_faces, **kwargs)])
-        else:
-            return PCardList([card for card in self if not card.matches_all(search_all_faces, **kwargs)])
+        return self.__scan(search_all_faces=search_all_faces, invert=invert, limit=limit, exact=True, **kwargs)
 
     def has_all(self, cards):
         """Returns true if this list contains all the given cards.
@@ -484,7 +428,12 @@ class PCardList(Persistent):
         """
         return random.choice(self.cards)
 
-    def random_pack(self, num_of_commons=11, num_of_uncommons=3, num_of_rares=1):
+    def random_pack(
+        self,
+        num_of_commons=11,
+        num_of_uncommons=3,
+        num_of_rares=1,
+    ):
         """Returns a new list of cards representing a booster (or similar) pack drawn from this lists' cards. The
         number of commons, uncommons and rares (or mythics) the pack will contain can be adjusted and by default the
         pack will have 11, 3 and 1 respectively. On average 1/8 of the rares will be mythics if this card list
@@ -498,24 +447,24 @@ class PCardList(Persistent):
         Returns:
             PCardList: A new list of cards corresponding a booster (or similar) pack
         """
-        random_commons = self.where_exactly(rarity='common').random_sample(num_of_commons)
-        random_uncommons = self.where_exactly(rarity='uncommon').random_sample(num_of_uncommons)
+        random_commons = self.where_exactly(rarity="common").random_sample(num_of_commons)
+        random_uncommons = self.where_exactly(rarity="uncommon").random_sample(num_of_uncommons)
         random_rares = PCardList()
 
-        if self.where_exactly(rarity='mythic rare'):
+        if self.where_exactly(rarity="mythic rare"):
             for _ in range(num_of_rares):
                 if random.randint(0, 7) == 0:
-                    random_rares.extend(self.where_exactly(rarity='mythic rare').random_sample(1))
+                    random_rares.extend(self.where_exactly(rarity="mythic rare").random_sample(1))
                 else:
-                    random_rares.extend(self.where_exactly(rarity='rare').random_sample(1))
-        elif self.where_exactly(rarity='mythic'):
+                    random_rares.extend(self.where_exactly(rarity="rare").random_sample(1))
+        elif self.where_exactly(rarity="mythic"):
             for _ in range(num_of_rares):
                 if random.randint(0, 7) == 0:
-                    random_rares.extend(self.where(rarity='mythic').random_sample(1))
+                    random_rares.extend(self.where(rarity="mythic").random_sample(1))
                 else:
-                    random_rares.extend(self.where(rarity='rare').random_sample(1))
+                    random_rares.extend(self.where(rarity="rare").random_sample(1))
         else:
-            random_rares.extend(self.where(rarity='rare').random_sample(num_of_rares))
+            random_rares.extend(self.where(rarity="rare").random_sample(num_of_rares))
 
         return random_commons + random_uncommons + random_rares
 
@@ -526,15 +475,38 @@ class PCardList(Persistent):
         Returns:
             PCardList: A new list of cards with all the special non-playable cards removed.
         """
-        if self.api_type == 'scryfall':
-            non_playable_layouts = ['vanguard', 'scheme', 'planar', 'emblem', 'token', 'double_faced_token', 'art_series']
+        if self.api_type == "scryfall":
+            non_playable_layouts = [
+                "vanguard",
+                "scheme",
+                "planar",
+                "emblem",
+                "token",
+                "double_faced_token",
+                "art_series",
+            ]
             return self.filtered(lambda card: card.layout not in non_playable_layouts)
         else:
-            non_playable_layouts = ['token', 'plane', 'scheme', 'phenomenon', 'vanguard', 'conspiracy']
-            face_layouts = ['split', 'flip', 'double-faced', 'aftermath']
+            non_playable_layouts = [
+                "token",
+                "plane",
+                "scheme",
+                "phenomenon",
+                "vanguard",
+                "conspiracy",
+            ]
+            face_layouts = [
+                "split",
+                "flip",
+                "double-faced",
+                "aftermath",
+            ]
 
-            return self.filtered(lambda card: card.layout not in face_layouts and self.name == self.names[0] or
-                                 self.layout in non_playable_layouts)
+            return self.filtered(
+                lambda card: card.layout not in face_layouts
+                and self.name == self.names[0]
+                or self.layout in non_playable_layouts
+            )
 
     def unique_names(self):
         """Returns a new list of cards containing only singles of cards with unique names. In other words all the
@@ -553,7 +525,8 @@ class PCardList(Persistent):
         Returns:
             PCardList: A new list of cards containing only singles cards.
         """
-        return PCardList(list(set(self.cards)))
+        temp = set()
+        return PCardList([card for card in self.cards if card not in temp and (temp.add(card) or True)])
 
     def creatures(self):
         """Returns a new list which only contains the creatures of this list.
@@ -561,10 +534,10 @@ class PCardList(Persistent):
         Returns:
             PCardList: A new list of cards containing only the creature cards.
         """
-        if self.api_type == 'scryfall':
-            return self.where(type_line='creature')
+        if self.api_type == "scryfall":
+            return self.where(type_line="creature")
         else:
-            return self.where(type=['creature'])
+            return self.where(type=["creature"])
 
     def artifacts(self):
         """Returns a new list which only contains the artifacts of this list.
@@ -572,10 +545,10 @@ class PCardList(Persistent):
         Returns:
             PCardList: A new list of cards containing only the artifact cards.
         """
-        if self.api_type == 'scryfall':
-            return self.where(type_line='artifact')
+        if self.api_type == "scryfall":
+            return self.where(type_line="artifact")
         else:
-            return self.where(type=['artifact'])
+            return self.where(type=["artifact"])
 
     def instants(self):
         """Returns a new list which only contains the instants of this list.
@@ -583,10 +556,10 @@ class PCardList(Persistent):
         Returns:
             PCardList: A new list of cards containing only the instant cards.
         """
-        if self.api_type == 'scryfall':
-            return self.where(type_line='instant')
+        if self.api_type == "scryfall":
+            return self.where(type_line="instant")
         else:
-            return self.where(type=['instant'])
+            return self.where(type=["instant"])
 
     def sorceries(self):
         """Returns a new list which only contains the sorceries of this list.
@@ -594,10 +567,10 @@ class PCardList(Persistent):
         Returns:
             PCardList: A new list of cards containing only the sorcery cards.
         """
-        if self.api_type == 'scryfall':
-            return self.where(type_line='sorcery')
+        if self.api_type == "scryfall":
+            return self.where(type_line="sorcery")
         else:
-            return self.where(type=['sorcery'])
+            return self.where(type=["sorcery"])
 
     def planeswalkers(self):
         """Returns a new list which only contains the planeswalkers of this list.
@@ -605,10 +578,10 @@ class PCardList(Persistent):
         Returns:
             PCardList: A new list of cards containing only the planeswalker cards.
         """
-        if self.api_type == 'scryfall':
-            return self.where(type_line='planeswalker')
+        if self.api_type == "scryfall":
+            return self.where(type_line="planeswalker")
         else:
-            return self.where(type=['planeswalker'])
+            return self.where(type=["planeswalker"])
 
     def enchantments(self):
         """Returns a new list which only contains the enchantments of this list.
@@ -616,10 +589,10 @@ class PCardList(Persistent):
         Returns:
             PCardList: A new list of cards containing only the enchantment cards.
         """
-        if self.api_type == 'scryfall':
-            return self.where(type_line='enchantment')
+        if self.api_type == "scryfall":
+            return self.where(type_line="enchantment")
         else:
-            return self.where(type=['enchantment'])
+            return self.where(type=["enchantment"])
 
     def noncreatures(self):
         """Returns a new list which only contains the noncreatures of this list.
@@ -627,10 +600,10 @@ class PCardList(Persistent):
         Returns:
             PCardList: A new list of cards containing only the noncreature cards.
         """
-        if self.api_type == 'scryfall':
-            return self.where(type_line='creature', invert=True)
+        if self.api_type == "scryfall":
+            return self.where(type_line="creature", invert=True)
         else:
-            return self.where(type=['creature'], invert=True)
+            return self.where(type=["creature"], invert=True)
 
     def lands(self):
         """Returns a new list which only contains the lands of this list.
@@ -638,10 +611,10 @@ class PCardList(Persistent):
         Returns:
             PCardList: A new list of cards containing only the land cards.
         """
-        if self.api_type == 'scryfall':
-            return self.where(type_line='land')
+        if self.api_type == "scryfall":
+            return self.where(type_line="land")
         else:
-            return self.where(type='land')
+            return self.where(type="land")
 
     def basic_lands(self):
         """Returns a new list which only contains the basic lands of this list.
@@ -649,22 +622,28 @@ class PCardList(Persistent):
         Returns:
             PCardList: A new list of cards containing only the basic land cards.
         """
-        if self.api_type == 'scryfall':
-            return self.where(type_line='basic land')
+        if self.api_type == "scryfall":
+            return self.where(type_line="basic land")
         else:
-            return self.where(type='basic land')
+            return self.where(type="basic land")
 
     def converted_mana_cost(self):
         """Returns the converted mana cost of the list.
+
+        Some special cards may not have a mana cost, in which case they are
+        considered to have a mana cost of 0.
 
         Returns:
             float: The converted mana cost of the list.
 
         """
-        return sum(card.cmc for card in self.cards)
+        return sum(card.cmc or 0 for card in self.cards)
 
     def average_mana_cost(self):
         """Returns the average mana cost of the cards in this list.
+
+        Some special cards may not have a mana cost, in which case they are
+        considered to have a mana cost of 0.
 
         Returns:
             float: The average mana cost of the list.
@@ -673,7 +652,7 @@ class PCardList(Persistent):
         if len(self.cards) == 0:
             return 0
         else:
-            return sum(card.cmc for card in self.cards) / len(self.cards)
+            return sum(card.cmc or 0 for card in self.cards) / len(self.cards)
 
     def mana_symbol_counts(self):
         """Returns a dictionary containing the counts of all the manasymbols of the cards of this list.
@@ -684,14 +663,20 @@ class PCardList(Persistent):
         Returns:
             dict: a dictionary containing the counts of all the manasymbols this list.
         """
-        count_dict = {'W': 0, 'U': 0, 'B': 0, 'R': 0, 'G': 0}
+        count_dict = {
+            "W": 0,
+            "U": 0,
+            "B": 0,
+            "R": 0,
+            "G": 0,
+        }
 
         for card in self.cards:
             for mana in count_dict.keys():
                 if card.mana_cost:
                     count_dict[mana] += card.mana_cost.count(mana)
-                elif card.layout == 'transform' and card.card_faces[0].get('mana_cost'):
-                    count_dict[mana] += card.card_faces[0].get('mana_cost').count(mana)
+                elif card.layout == "transform" and card.card_faces[0].get("mana_cost"):
+                    count_dict[mana] += card.card_faces[0].get("mana_cost").count(mana)
 
         return count_dict
 
@@ -699,14 +684,20 @@ class PCardList(Persistent):
         """Returns a dictionary containing the cards of this list grouped by their converted mana costs.
         The dictionary is in the form:
 
-        {'0.0': cards with cmc 0, '1.0': cards with cmc 1, '2.0': cards with cmc 2, ...}
+        {
+            '0.0': cards with cmc 0,
+            '1.0': cards with cmc 1,
+            '2.0': cards with cmc 2,
+            None: cards with no cmc,
+            etc...
+        }
 
         The keys will only be in the dictionary if there are cards with the corresponding mana costs in this list.
 
         Returns:
             dict: A dictionary containing the cards grouped by their converted mana costs.
         """
-        sorted_cards = self.sorted(lambda card: card.cmc)
+        sorted_cards = self.sorted(lambda card: (card.cmc is None, card.cmc))
         return dict((k, PCardList(list(v))) for k, v in groupby(sorted_cards, key=lambda card: card.cmc))
 
     def grouped_by_simple_type(self):
@@ -726,7 +717,11 @@ class PCardList(Persistent):
         lands = self.lands() - creatures
         noncreatures = self.noncreatures() - lands
 
-        return {'creatures': creatures, 'lands': lands, 'noncreatures': noncreatures}
+        return {
+            "creatures": creatures,
+            "lands": lands,
+            "noncreatures": noncreatures,
+        }
 
     def grouped_by_type(self):
         """Returns a dictionary containing the cards of this list grouped by their types.
@@ -755,8 +750,15 @@ class PCardList(Persistent):
         sorceries = self.sorceries()
         planeswalkers = self.planeswalkers()
 
-        return {'creatures': creatures, 'lands': lands, 'enchantments': enchantments, 'artifacts': artifacts,
-                'instants': instants, 'sorceries': sorceries, 'planeswalkers': planeswalkers}
+        return {
+            "creatures": creatures,
+            "lands": lands,
+            "enchantments": enchantments,
+            "artifacts": artifacts,
+            "instants": instants,
+            "sorceries": sorceries,
+            "planeswalkers": planeswalkers,
+        }
 
     def grouped_by_color_identity(self):
         """Returns a dictionary containing the cards of this list grouped by their color identities.
@@ -769,7 +771,14 @@ class PCardList(Persistent):
             dict: A dictionary containing cards grouped by their color identities.
         """
         sorted_cards = self.sorted(lambda card: card.color_identity)
-        grouper = groupby(sorted_cards, key=lambda card: re.sub("[],'[ ]", "", str(sorted(card.color_identity))))
+        grouper = groupby(
+            sorted_cards,
+            key=lambda card: re.sub(
+                "[],'[ ]",
+                "",
+                str(sorted(card.color_identity)),
+            ),
+        )
 
         return dict((k, PCardList(list(v))) for k, v in grouper)
 
@@ -784,13 +793,18 @@ class PCardList(Persistent):
         Returns:
             dict: A dictionary containing cards grouped by their colors.
         """
+
         def get_color(card):
             if card.colors:
                 return re.sub("[],'[ ]", "", str(sorted(card.colors)))
-            elif card.layout == 'transform' and card.card_faces[0].get('colors'):
-                return re.sub("[],'[ ]", "", str(sorted(card.card_faces[0].get('colors'))))
+            elif card.layout == "transform" and card.card_faces[0].get("colors"):
+                return re.sub(
+                    "[],'[ ]",
+                    "",
+                    str(sorted(card.card_faces[0].get("colors"))),
+                )
             else:
-                return ''
+                return ""
 
         grouper = groupby(self.sorted(get_color), key=get_color)
 
@@ -808,38 +822,38 @@ class PCardList(Persistent):
         sorted_cards = self.sorted(lambda card: card.id)
         return dict((k, PCardList(list(v))) for k, v in groupby(sorted_cards, key=lambda card: card.id))
 
-    def deck_str(self, group_by='type', add_set_codes=True):
+    def deck_str(self, group_by="type", add_set_codes=True):
         """Returns a string of the cards in this list in a readable deck form. Optionally the set code of the cards can
         be left out by setting 'add_set_codes' to False. If this card list has any cards in the sideboard, those will be
         added with the prefix 'SB:'.
 
         The string will be of the following format:
         --------------------------------------
-        //This is a comment
+        // This is a comment
         num Card Name [set_code] /n
         num Card Name [set_code] /n
         num Card Name [set_code] /n
 
-        //Some other cards
+        // Some other cards
         num Some Other Card Name [set_code] /n
 
-        /Sideboard
+        // Sideboard
         SB: num Some Sideboard Card Name [set_code] /n
         SB: num Some Sideboard Card Name [set_code] /n
         --------------------------------------
 
         eg.
         --------------------------------------
-        //Creatures (8)
+        // Creatures (8)
         1 Wild Mongrel [od]
         4 Aquamoeba [od]
         2 Werebear
         noose constrictor
 
-        //Enchantments (1)
+        // Enchantments (1)
         rancor [ULG]
 
-        //Sideboard (2)
+        // Sideboard (2)
         SB: 2 Werebear
         --------------------------------------
 
@@ -856,72 +870,121 @@ class PCardList(Persistent):
         Returns:
             str: A string of the cards of this list in a readable deck format.
         """
-        deck = ''
+        deck = ""
 
-        if group_by == 'type':
-            for group_name, group_cards in self.grouped_by_type().items():
+        if group_by == "type":
+            for (
+                group_name,
+                group_cards,
+            ) in self.grouped_by_type().items():
                 if group_cards:
-                    deck += '// {} ({})\n'.format(group_name.capitalize(), len(group_cards))
+                    deck += "// {} ({})\n".format(
+                        group_name.capitalize(),
+                        len(group_cards),
+                    )
 
                     for cards in group_cards.grouped_by_id().values():
                         if add_set_codes:
-                            deck += '{} {} [{}]\n'.format(len(cards), cards[0].name, cards[0].set)
+                            deck += "{} {} [{}]\n".format(
+                                len(cards),
+                                cards[0].name,
+                                cards[0].set,
+                            )
                         else:
-                            deck += '{} {}\n'.format(len(cards), cards[0].name)
-                    deck += '\n'
+                            deck += "{} {}\n".format(len(cards), cards[0].name)
+                    deck += "\n"
 
-        if group_by == 'cmc':
-            for group_name, group_cards in self.grouped_by_converted_mana_cost().items():
+        if group_by == "cmc":
+            for (
+                group_name,
+                group_cards,
+            ) in self.grouped_by_converted_mana_cost().items():
                 if group_cards:
-                    deck += '// {} ({})\n'.format(str(int(group_name)), len(group_cards))
+                    deck += "// {} ({})\n".format(
+                        str(int(group_name)),
+                        len(group_cards),
+                    )
 
                     for cards in group_cards.grouped_by_id().values():
                         if add_set_codes:
-                            deck += '{} {} [{}]\n'.format(len(cards), cards[0].name, cards[0].set)
+                            deck += "{} {} [{}]\n".format(
+                                len(cards),
+                                cards[0].name,
+                                cards[0].set,
+                            )
                         else:
-                            deck += '{} {}\n'.format(len(cards), cards[0].name)
-                    deck += '\n'
+                            deck += "{} {}\n".format(len(cards), cards[0].name)
+                    deck += "\n"
 
-        elif group_by == 'none':
+        elif group_by == "none":
             for cards in self.grouped_by_id().values():
                 if add_set_codes:
-                    deck += '{} {} [{}]\n'.format(len(cards), cards[0].name, cards[0].set)
+                    deck += "{} {} [{}]\n".format(
+                        len(cards),
+                        cards[0].name,
+                        cards[0].set,
+                    )
                 else:
-                    deck += '{} {}\n'.format(len(cards), cards[0].name)
-            deck += '\n'
+                    deck += "{} {}\n".format(len(cards), cards[0].name)
+            deck += "\n"
 
-        elif group_by == 'color':
-            keymap = {'R': 'Red', 'G': 'Green', 'U': 'Blue', 'B': 'Black', 'W': 'White', '': 'Colorless'}
-            r_groups = {'Multicolor': PCardList(), 'Colorless': PCardList(), 'Red': PCardList(),
-                        'Blue': PCardList(), 'Black': PCardList(), 'White': PCardList(),  'Green': PCardList()}
+        elif group_by == "color":
+            keymap = {
+                "R": "Red",
+                "G": "Green",
+                "U": "Blue",
+                "B": "Black",
+                "W": "White",
+                "": "Colorless",
+            }
+            r_groups = {
+                "Multicolor": PCardList(),
+                "Colorless": PCardList(),
+                "Red": PCardList(),
+                "Blue": PCardList(),
+                "Black": PCardList(),
+                "White": PCardList(),
+                "Green": PCardList(),
+            }
 
             for key, val in self.grouped_by_color().items():
                 if len(key) > 1:
-                    r_groups['Multicolor'] += val
+                    r_groups["Multicolor"] += val
                 else:
                     r_groups[keymap[key]] += val
 
             for group_name, group_cards in r_groups.items():
                 if group_cards:
-                    deck += '// {} ({})\n'.format(group_name.capitalize(), len(group_cards))
+                    deck += "// {} ({})\n".format(
+                        group_name.capitalize(),
+                        len(group_cards),
+                    )
 
                     for cards in group_cards.grouped_by_id().values():
                         if add_set_codes:
-                            deck += '{} {} [{}]\n'.format(len(cards), cards[0].name, cards[0].set)
+                            deck += "{} {} [{}]\n".format(
+                                len(cards),
+                                cards[0].name,
+                                cards[0].set,
+                            )
                         else:
-                            deck += '{} {}\n'.format(len(cards), cards[0].name)
-                    deck += '\n'
+                            deck += "{} {}\n".format(len(cards), cards[0].name)
+                    deck += "\n"
 
         if self.sideboard:
-            if group_by != 'none':
-                deck += '// {} ({})\n'.format('Sideboard', len(self.sideboard))
+            if group_by != "none":
+                deck += "// {} ({})\n".format("Sideboard", len(self.sideboard))
 
             for cards in PCardList(self.sideboard).grouped_by_id().values():
                 if add_set_codes:
-                    deck += 'SB: {} {} [{}]\n'.format(len(cards), cards[0].name, cards[0].set)
+                    deck += "SB: {} {} [{}]\n".format(
+                        len(cards),
+                        cards[0].name,
+                        cards[0].set,
+                    )
                 else:
-                    deck += 'SB: {} {}\n'.format(len(cards), cards[0].name)
-            deck += '\n'
+                    deck += "SB: {} {}\n".format(len(cards), cards[0].name)
+            deck += "\n"
 
         return deck
 
@@ -940,18 +1003,19 @@ class PCardList(Persistent):
             if self.name:
                 return 'Empty card list "{}" created at {}\n'.format(self.name, str(self.creation_date))
             else:
-                return 'Unnamed empty card list created at {}\n'.format(self.creation_date)
+                return "Unnamed empty card list created at {}\n".format(self.creation_date)
 
-        pp_str = ''
+        pp_str = ""
         format_str = "{name:{w1}s}   {set:{w2}s}   {type:{w3}s}   {mana:{w4}s}   {rarity:{w5}s}\n"
 
         if self.name:
-            pp_str += 'Card list "{}" created at {} with a total of {} cards\n'.format(self.name,
-                                                                                       str(self.creation_date),
-                                                                                       len(self))
+            pp_str += 'Card list "{}" created at {} with a total of {} cards\n'.format(
+                self.name,
+                str(self.creation_date),
+                len(self),
+            )
         else:
-            pp_str += 'Unnamed card list created at {} with a total of {} cards\n'.format(self.creation_date,
-                                                                                          len(self))
+            pp_str += "Unnamed card list created at {} with a total of {} cards\n".format(self.creation_date, len(self))
 
         longest_name = max(len(card.name) for card in self.cards + self.sideboard) + 2
         longest_rarity = max(len(card.rarity) for card in self.cards + self.sideboard)
@@ -961,120 +1025,163 @@ class PCardList(Persistent):
         longest_mana_cost = 0
 
         for card in self.cards + self.sideboard:
-            if self.api_type == 'scryfall':
+            if self.api_type == "scryfall":
                 if card.type_line and len(card.type_line) > longest_type_line:
                     longest_type_line = len(card.type_line)
 
-                if card.card_faces and card.card_faces[0].get('type_line'):
-                    if len(card.card_faces[0].get('type_line')) > longest_type_line:
-                        longest_type_line = len(card.card_faces[0].get('type_line'))
+                if card.card_faces and card.card_faces[0].get("type_line"):
+                    if len(card.card_faces[0].get("type_line")) > longest_type_line:
+                        longest_type_line = len(card.card_faces[0].get("type_line"))
 
                 if card.mana_cost and len(card.mana_cost) > longest_mana_cost:
                     longest_mana_cost = len(card.mana_cost)
 
-                if card.card_faces and card.card_faces[0].get('mana_cost'):
-                    if len(card.card_faces[0].get('mana_cost')) > longest_mana_cost:
-                        longest_mana_cost = len(card.card_faces[0].get('mana_cost'))
+                if card.card_faces and card.card_faces[0].get("mana_cost"):
+                    if len(card.card_faces[0].get("mana_cost")) > longest_mana_cost:
+                        longest_mana_cost = len(card.card_faces[0].get("mana_cost"))
             else:
                 longest_type_line = max(len(card.type) for card in self.cards + self.sideboard)
-                longest_mana_cost = max([len(card.mana_cost) for card in self.cards + self.sideboard
-                                         if card.mana_cost], default=0)
+                longest_mana_cost = max(
+                    [len(card.mana_cost) for card in self.cards + self.sideboard if card.mana_cost],
+                    default=0,
+                )
 
         longest_type_line = 4 if longest_type_line < 4 else longest_type_line
         longest_mana_cost = 4 if longest_mana_cost < 4 else longest_mana_cost
 
-        pp_str += '-' * (longest_name + longest_rarity + longest_type_line + longest_mana_cost + 17) + '\n'
-        pp_str += format_str.format(name='Card', w1=longest_name,
-                                    set='Set', w2=longest_set,
-                                    type='Type', w3=longest_type_line,
-                                    mana='Cost', w4=longest_mana_cost,
-                                    rarity='Rarity', w5=longest_rarity)
-        pp_str += '-' * (longest_name + longest_rarity + longest_type_line + longest_mana_cost + 17) + '\n'
+        pp_str += "-" * (longest_name + longest_rarity + longest_type_line + longest_mana_cost + 17) + "\n"
+        pp_str += format_str.format(
+            name="Card",
+            w1=longest_name,
+            set="Set",
+            w2=longest_set,
+            type="Type",
+            w3=longest_type_line,
+            mana="Cost",
+            w4=longest_mana_cost,
+            rarity="Rarity",
+            w5=longest_rarity,
+        )
+        pp_str += "-" * (longest_name + longest_rarity + longest_type_line + longest_mana_cost + 17) + "\n"
 
-        for cards in self.grouped_by_id().values():
-            card = cards[0]
-            num = len(cards)
+        cards_by_id = self.grouped_by_id()
+        unique = self.unique_cards()
 
-            if self.api_type == 'scryfall':
+        for card in unique:
+            num = len(cards_by_id[card.id])
+
+            if self.api_type == "scryfall":
                 if card.card_faces and not card.type_line:
-                    type_line = card.card_faces[0].get('type_line')
+                    type_line = card.card_faces[0].get("type_line")
                 else:
                     type_line = card.type_line
 
                 if card.card_faces and not card.mana_cost:
-                    mana_cost = card.card_faces[0].get('mana_cost')
+                    mana_cost = card.card_faces[0].get("mana_cost")
                 else:
                     mana_cost = card.mana_cost
             else:
                 type_line = card.type
-                mana_cost = card.mana_cost if card.mana_cost else ''
+                mana_cost = card.mana_cost if card.mana_cost else ""
 
-            pp_str += format_str.format(name=str(num) + ' ' + card.name, w1=longest_name,
-                                        set=card.set, w2=longest_set,
-                                        type=type_line.replace('—', '-'), w3=longest_type_line,
-                                        mana=mana_cost, w4=longest_mana_cost,
-                                        rarity=card.rarity, w5=longest_rarity)
+            pp_str += format_str.format(
+                name=str(num) + " " + card.name,
+                w1=longest_name,
+                set=card.set,
+                w2=longest_set,
+                type=type_line.replace("—", "-"),
+                w3=longest_type_line,
+                mana=mana_cost,
+                w4=longest_mana_cost,
+                rarity=card.rarity,
+                w5=longest_rarity,
+            )
 
         if self.sideboard:
-            pp_str += '\nSideboard:\n'
+            pp_str += "\nSideboard:\n"
+            sb_unique = PCardList(self.sideboard).unique_cards()
+            sb_by_id = PCardList(self.sideboard).grouped_by_id()
 
-            for cards in PCardList(self.sideboard).grouped_by_id().values():
-                card = cards[0]
-                num = len(cards)
+            for card in sb_unique:
+                num = len(sb_by_id[card.id])
 
-                if self.api_type == 'scryfall':
+                if self.api_type == "scryfall":
                     if card.card_faces and not card.type_line:
-                        type_line = card.card_faces[0].get('type_line')
+                        type_line = card.card_faces[0].get("type_line")
                     else:
                         type_line = card.type_line
 
                     if card.card_faces and not card.mana_cost:
-                        mana_cost = card.card_faces[0].get('mana_cost')
+                        mana_cost = card.card_faces[0].get("mana_cost")
                     else:
                         mana_cost = card.mana_cost
                 else:
                     type_line = card.type
-                    mana_cost = card.mana_cost if card.mana_cost else ''
+                    mana_cost = card.mana_cost if card.mana_cost else ""
 
-                pp_str += format_str.format(name=str(num) + ' ' + card.name, w1=longest_name,
-                                            set=card.set, w2=4,
-                                            type=type_line.replace('—', '-'), w3=longest_type_line,
-                                            mana=mana_cost, w4=longest_mana_cost,
-                                            rarity=card.rarity, w5=longest_rarity)
+                pp_str += format_str.format(
+                    name=str(num) + " " + card.name,
+                    w1=longest_name,
+                    set=card.set,
+                    w2=4,
+                    type=type_line.replace("—", "-"),
+                    w3=longest_type_line,
+                    mana=mana_cost,
+                    w4=longest_mana_cost,
+                    rarity=card.rarity,
+                    w5=longest_rarity,
+                )
 
         return pp_str
 
-    def download_images_from_scryfall(self, image_type='normal', dir_path='', overwrite=True):
+    def download_images_from_scryfall(
+        self,
+        image_type="normal",
+        dir_path="",
+        overwrite=True,
+    ):
         """Downloads all the of this list's cards from Scryfall to a given directory with path 'dir_path'. Scryfall
         hosts 6 types of image  files and by default 'normal' sized images are downloaded. More information at:
         https://scryfall.com/docs/api/images.
 
         If no path is specified the images are downloaded to the current working directory. If the given path is
-        not found a new folder is created automatically. Paths should be specified in the format 
-        'C:\\users\\Timmy\\...' and the image file names will be the card names, eq. 'Wild Mongrel.jpg'. Specifying 
+        not found a new folder is created automatically. Paths should be specified in the format
+        'C:\\users\\Timmy\\...' and the image file names will be the card names, eq. 'Wild Mongrel.jpg'. Specifying
         wrong kind of paths might lead to undefined behaviour or errors.
 
-        The 'overwrite' argument specifies whether to overwrite the images if they already exists in the given path. 
-        Otherwise the image will be saved as 'Card Name (1).jpg', 'Card Name (2).jpg' etc. It is set to True by 
+        The 'overwrite' argument specifies whether to overwrite the images if they already exists in the given path.
+        Otherwise the image will be saved as 'Card Name (1).jpg', 'Card Name (2).jpg' etc. It is set to True by
         default.
 
         Args:
             image_type (str): A type or size of image to download. Either 'png', 'border_crop', 'art_crop', 'small',
             'normal' or 'large'.
             dir_path (str): The path to the directory to download the images to.
-            overwrite (bool): Wether to overwrite a downloaded image if it already exists in the given path. If 
+            overwrite (bool): Wether to overwrite a downloaded image if it already exists in the given path. If
             False, the image will be saved as 'Card Name (1).jpg', 'Card Name (2).jpg' etc.
         """
-        if self.api_type != 'scryfall':
-            raise TypeError('Images can only be only downloaded for card objects from Scryfall api.')
+        if self.api_type != "scryfall":
+            raise TypeError("Images can only be only downloaded for card objects from Scryfall api.")
 
         uniques = PCardList(self.cards + self.sideboard).unique_cards()
 
         for card in uniques:
-            card.download_image_from_scryfall(image_type=image_type, dir_path=dir_path, overwrite=overwrite)
+            card.download_image_from_scryfall(
+                image_type=image_type,
+                dir_path=dir_path,
+                overwrite=overwrite,
+            )
 
-    def create_proxies(self, scaling_factor=1.0, margins=(130, 130), cut_space=True,
-                       quality=75, dir_path='', image_format='jpeg', file_names='proxies'):
+    def create_proxies(
+        self,
+        scaling_factor=1.0,
+        margins=(130, 130),
+        cut_space=True,
+        quality=75,
+        dir_path="",
+        image_format="jpeg",
+        file_names="proxies",
+    ):
         """Creates A4-sized printable jpeg-proxy sheets of the cards in this list. Each page will have 9 card proxies.
 
         At normal dpi the A4 sheets have size 2480 × 3508 and by default the card proxy images will have size 745 × 1040
@@ -1091,12 +1198,12 @@ class PCardList(Persistent):
         The 'quality' value is an integer between 1(worst) - 95(best). Values above 95 should be avoided. Using a large
         quality value will result in bigger image files and better quality which is often not needed.
 
-        The image format of the sheets can be specified with 'image_format' which can be anything supported by PIL. 
+        The image format of the sheets can be specified with 'image_format' which can be anything supported by PIL.
         By default it is set to 'jpeg'.
 
         If no path is specified, the image is downloaded to the current working directory. If the given
         path is not found, a new folder is created automatically. Paths should be specified in the format
-        'C:\\users\\Timmy\\some_folder\\' or 'C:/users/Timmy/some_folder/' The names for the proxy sheets 
+        'C:\\users\\Timmy\\some_folder\\' or 'C:/users/Timmy/some_folder/' The names for the proxy sheets
         can be specified with 'file_names' which will name the sheets 'name1', 'name2', 'name3', etc.
 
         Note that the Pillow-image library is needed for creating printable proxies.
@@ -1113,21 +1220,20 @@ class PCardList(Persistent):
         try:
             from PIL import Image
         except ImportError:
-            print('The Pillow-image library is needed for creating printable proxies. Make sure you have it installed!')
+            print("The Pillow-image library is needed for creating printable proxies. Make sure you have it installed!")
             return
-        
+
         path = pathlib.Path(dir_path)
 
         try:
             path.mkdir(exist_ok=True)
         except FileExistsError:
-            print(
-                'The given path {} already exists and it is not a folder.'.format(str(path)))
+            print("The given path {} already exists and it is not a folder.".format(str(path)))
 
         if dir_path and not os.path.exists(dir_path):
             os.makedirs(dir_path)
 
-        page = Image.new('RGB', (2480, 3508), (255, 255, 255, 0))
+        page = Image.new("RGB", (2480, 3508), (255, 255, 255, 0))
         x, y = margins
 
         pages = 1
@@ -1145,39 +1251,49 @@ class PCardList(Persistent):
 
                     if y > 3 * image_height:
                         y = margins[1]
-                        page.save(fp=path / (file_names + str(pages) + '.' + image_format),
-                                  format=image_format,
-                                  quality=quality,
-                                  dpi=(300, 300))
-                        page = Image.new('RGB', (2480, 3508), 'white')
+                        page.save(
+                            fp=path / (file_names + str(pages) + "." + image_format),
+                            format=image_format,
+                            quality=quality,
+                            dpi=(300, 300),
+                        )
+                        page = Image.new("RGB", (2480, 3508), "white")
                         pages += 1
 
-            page.save(fp=path / (file_names + str(pages) + '.' + image_format), 
-                      format=image_format, 
-                      quality=quality, 
-                      dpi=(300, 300))
+            page.save(
+                fp=path / (file_names + str(pages) + "." + image_format),
+                format=image_format,
+                quality=quality,
+                dpi=(300, 300),
+            )
 
-    def from_str(self, card_list_str, **kwargs):
+    def from_str(self, card_list_str, only_playable_cards=True, **kwargs):
         """Reads a given card list string and returns a new list of all the cards of this list found in the string.
 
-        The string should be given in the following format:
+        For consistency, as this method is mostly used for reading deck lists, by default it parses only cards
+        that are generally considered playable in a deck. For example, it will not parse tokens, special
+        promotional cards and art-series cards. Therefore, there is no change that it parses for example
+        an art-series card for a line "1  Liliana of the Veil" (if the list happens to contain one). This
+        behavior can be overridden by setting 'only_playable_cards' to False.
+
+        The string should be given in the following format as an example:
 
         --------------------------------------
         //This is a comment
         num Card Name [set_code collector_number] /n
-        num Card Name [set_code collector_number] /n
-        num Card Name [set_code collector_number] /n
+        num Card Name [set_code] /n
+        num Card Name /n
 
         //Some other cards
         num Some Other Card Name [set_code collector_number] /n
 
         //Sideboard
-        SB: Some Sideboard Card Name [set_code collector_number] /n
-        SB: Some Sideboard Card Name [set_code collector_number] /n
+        SB: Some Sideboard Card Name [set_code] /n
+        SB: Some Sideboard Card Name /n
         --------------------------------------
 
-        The number of cards 'num' and the set code '[set_code]' or '(set_code)' along with the collector number are
-        optional. The collector number can only be specified after a valid set code. Card names and set codes
+        The number of cards 'num' and the set code '[set_code]' or '(set_code)' along with the collector_number are
+        optional. The collector_number can only be specified after a valid set code. Card names and set codes
         are case-insensitive. Each card or cards must be on its own line and comments can only start in the beginning
         of lines. Cards found on lines starting with the prefix 'SB:' are added in the sideboard of the list.
 
@@ -1190,8 +1306,8 @@ class PCardList(Persistent):
         eg.
         --------------------------------------
         //Creatures (8)
-        1 Wild Mongrel [od]
-        4 Aquamoeba [od]
+        1 Wild Mongrel [ody]
+        4 Aquamoeba [ody]
         2 Werebear
         noose constrictor
 
@@ -1204,6 +1320,7 @@ class PCardList(Persistent):
 
         Args:
             card_list_str (str): A string representing a list of cards.
+            only_playable_cards (bool): If True, only consider cards that are normally playable. Defaults to True.
             **kwargs: Arguments to match with the attributes of every card in the list (see the documentation of where).
 
         Returns:
@@ -1212,62 +1329,86 @@ class PCardList(Persistent):
 
         card_list = PCardList()
         set_codes = {card.set for card in self.cards}
+        cards_to_search = self.cards if not only_playable_cards else self.normal_playable_cards()
 
         for line in (_.strip() for _ in card_list_str.splitlines()):
+            # ignore empty lines and comments
+            if not line or line[0:2] == "//":
+                continue
+
             sb = False
 
-            if line and line[0:2] != '//':
-                if line[0:3] == 'SB:':
-                    sb = True
-                    line = line[3:]
+            # lines starting with the prefix 'SB:' are added in the sideboard of the list
+            if line[0:3] == "SB:":
+                sb = True
+                line = line[3:]
 
-                num = int(line.split()[0]) if line.split()[0].isdigit() else 1
+            # extract the number of cards from the line, if it is not specified, default to 1
+            num = int(line.split()[0]) if line.split()[0].isdigit() else 1
 
-                name = line.split(maxsplit=1)[1] if line.split()[0].isdigit() else line
-                name = name.split('[')[0] if '[' in name and ']' in name else name
-                name = name.strip()
+            # extract the card name from the line
+            name = line.split(maxsplit=1)[1] if line.split()[0].isdigit() else line
 
-                if "(" in line and ")" in line:
-                    cl = line[line.find('(') + 1:line.find(')')].strip()
-                    set_code = cl.split()[0] if len(cl.split()) > 0 else None
-                    collector_number = cl.split()[1] if len(cl.split()) > 1 else None
-                elif "[" in line and "]" in line:
-                    cl = line[line.find('[') + 1:line.find(']')].strip()
-                    set_code = cl.split()[0] if len(cl.split()) > 0 else None
-                    collector_number = cl.split()[1] if len(cl.split()) > 1 else None
+            if "(" in name and ")" in name:
+                name = name.split("(")[0]
+            elif "[" in name and "]" in name:
+                name = name.split("[")[0]
+
+            name = name.strip()
+
+            # extract the set code and collector number if they are present in the line
+            if "(" in line and ")" in line:
+                cl = line[line.find("(") + 1 : line.find(")")].strip()
+                set_code = cl.split()[0] if len(cl.split()) > 0 else None
+                collector_number = cl.split()[1] if len(cl.split()) > 1 else None
+            elif "[" in line and "]" in line:
+                cl = line[line.find("[") + 1 : line.find("]")].strip()
+                set_code = cl.split()[0] if len(cl.split()) > 0 else None
+                collector_number = cl.split()[1] if len(cl.split()) > 1 else None
+            else:
+                set_code = None
+
+            if set_code and set_code not in set_codes:
+                msg = "Could not find any matching {} API set code for the line --{}--"
+                warnings.warn(msg.format(self.api_type, line))
+                set_code = None
+
+            try:
+                if set_code:
+                    if collector_number:
+                        card = cards_to_search.where_exactly(
+                            name=name,
+                            set=set_code,
+                            search_all_faces=True,
+                            collector_number=collector_number,
+                            **kwargs,
+                        )[0]
+                    else:
+                        card = cards_to_search.where_exactly(
+                            name=name,
+                            set=set_code,
+                            search_all_faces=True,
+                            **kwargs,
+                        )[0]
                 else:
-                    set_code = None
+                    card = cards_to_search.where_exactly(
+                        name=name,
+                        search_all_faces=True,
+                        **kwargs,
+                    ).random_card()
 
-                if set_code and set_code not in set_codes:
-                    msg = 'Could not find any matching {} API set code for the line --{}--'
-                    warnings.warn(msg.format(self.api_type, line))
-                    set_code = None
+                if sb:
+                    card_list.sideboard.extend([card for _ in range(num)])
+                else:
+                    card_list.extend(num * (PCardList() + card))
 
-                try:
-                    if set_code:
-                        if collector_number:
-                            card = self.where_exactly(name=name,
-                                                      set=set_code,
-                                                      search_all_faces=True,
-                                                      collector_number=collector_number,
-                                                      **kwargs)[0]
-                        else:
-                            card = self.where_exactly(name=name, set=set_code, search_all_faces=True, **kwargs)[0]
-                    else:
-                        card = self.where_exactly(name=name, search_all_faces=True, **kwargs).random_card()
-
-                    if sb:
-                        card_list.sideboard.extend([card for _ in range(num)])
-                    else:
-                        card_list.extend(num * (PCardList() + card))
-
-                except IndexError:
-                    msg = """
-                    Could not find any cards matching the line --{}-- with given keyword arguments --{}--.
-                    This could possibly be because of a typo, the card doesn't exist in the given set or 
-                    because there are no cards matching the given keyword arguments or collector number if any were specified
-                    """
-                    warnings.warn(dedent(msg.format(line, list(kwargs.items()))))
+            except IndexError:
+                msg = """
+                Could not find any cards matching the line --{}-- with given keyword arguments --{}--.
+                This could possibly be because of a typo, the card doesn't exist in the given set or 
+                because there are no cards matching the given keyword arguments or collector number if any were specified
+                """
+                warnings.warn(dedent(msg.format(line, list(kwargs.items()))))
 
         return card_list
 
@@ -1326,14 +1467,14 @@ class PCardList(Persistent):
         """
 
         try:
-            with open(file_path, 'r') as f:
+            with open(file_path, "r") as f:
                 return self.from_str(f.read(), **kwargs)
 
         except (IOError, FileNotFoundError):
-            print('Something went wrong with reading file {}'.format(file_path))
-            print('Check that the file exists in the given path and that it is a simple text file.')
+            print("Something went wrong with reading file {}".format(file_path))
+            print("Check that the file exists in the given path and that it is a simple text file.")
 
-    def to_file(self, file_path, group_by='type', add_set_codes=True):
+    def to_file(self, file_path, group_by="type", add_set_codes=True):
         """Writes the cards in this list in a readable deck form in a file. The cards cannot be written in an existing
         file. The file path must be given in the format of "C:/Users/jhonny/Desktop/my_text_file.txt" where
         "my_text_file.txt" is the name of the file to be created. The function results in an error if the file already
@@ -1385,11 +1526,16 @@ class PCardList(Persistent):
             file_path (str): The path to create the file to.
         """
         try:
-            with open(file_path, 'x') as f:
-                f.write(self.deck_str(group_by=group_by, add_set_codes=add_set_codes))
+            with open(file_path, "x") as f:
+                f.write(
+                    self.deck_str(
+                        group_by=group_by,
+                        add_set_codes=add_set_codes,
+                    )
+                )
 
         except (FileExistsError, IOError) as err:
-            print('Something went wrong with writing to the file: {}'.format(str(err)))
+            print("Something went wrong with writing to the file: {}".format(str(err)))
 
     def create_id_index(self):
         """Creates and returns a fast persistent index of the unique cards of this list as a BTree which works
@@ -1402,16 +1548,48 @@ class PCardList(Persistent):
         sorted_cards = self.sorted(lambda card: card.id)
         return BTree(dict((k, list(v)[0]) for k, v in groupby(sorted_cards, key=lambda card: card.id)))
 
+    def jprint(self):
+        """Pretty-prints the json representation of this object."""
+
+        print(self.json)
+
+    @property
+    def len(self):
+        """Returns the number of cards in this PCardList. Functions the same as the
+        built-in len() acting on this PCradList."""
+
+        return self.__len__()
+
+    @property
+    def first(self):
+        """Returns the first card in this PCardList, or None if the list is empty."""
+        try:
+            return self.cards[0]
+        except IndexError:
+            return None
+
+    @property
+    def last(self):
+        """Returns the last card in this PCardList, or None if the list is empty."""
+        try:
+            return self.cards[-1]
+        except IndexError:
+            return None
+
     @property
     def api_type(self):
         try:
             return self.cards[0].api_type
         except IndexError:
-            return 'unspecified'
+            return "unspecified"
 
     @property
     def json(self):
-        return json.dumps({'cards': [card.__dict__ for card in self.cards]}, sort_keys=True, indent=4)
+        return json.dumps(
+            {"cards": [json.loads(card.json) for card in self.cards]},
+            sort_keys=True,
+            indent=4,
+        )
 
     @property
     def cards(self):

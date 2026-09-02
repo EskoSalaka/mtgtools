@@ -1,72 +1,3 @@
-########################################################################################################################
-# Copyright © 2018 Esko-Kalervo Salaka.
-# All rights reserved.
-#
-#
-# Zope Public License (ZPL) Version 2.1
-#
-# A copyright notice accompanies this license document that identifies the
-# copyright holders.
-#
-# This license has been certified as open source. It has also been designated as
-# GPL compatible by the Free Software Foundation (FSF).
-#
-# Redistribution and use in source and binary forms, with or without
-# modification, are permitted provided that the following conditions are met:
-#
-# 1. Redistributions in source code must retain the accompanying copyright
-# notice, this list of conditions, and the following disclaimer.
-#
-# 2. Redistributions in binary form must reproduce the accompanying copyright
-# notice, this list of conditions, and the following disclaimer in the
-# documentation and/or other materials provided with the distribution.
-#
-# 3. Names of the copyright holders must not be used to endorse or promote
-# products derived from this software without prior written permission from the
-# copyright holders.
-#
-# 4. The right to distribute this software or to use it for any purpose does not
-# give you the right to use Servicemarks (sm) or Trademarks (tm) of the
-# copyright
-# holders. Use of them is covered by separate agreement with the copyright
-# holders.
-#
-# 5. If any files are modified, you must cause the modified files to carry
-# prominent notices stating that you changed the files and the date of any
-# change.
-#
-# Disclaimer
-#
-# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS ``AS IS'' AND ANY EXPRESSED
-# OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
-# OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO
-# EVENT SHALL THE COPYRIGHT HOLDERS BE LIABLE FOR ANY DIRECT, INDIRECT,
-# INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-# LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
-# PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
-# LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
-# NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE,
-# EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-#
-#
-# This software uses ZODB, a native object database for Python, which is a
-# copyright © by Zope Foundation and Contributors.
-#
-# This software uses Scryfall's rest-like API which is a copyright © by Scryfall LLC.
-#
-# This software uses rest-like API of magicthegathering.io which is a copyright © by Andrew Backes.
-#
-# This software uses the Python Imaging Library (PIL) which is a copyright © 1997-2011 by Secret Labs AB and
-# copyright © 1995-2011 by Fredrik Lundh
-#
-# All the graphical and literal information and data related to Magic: The Gathering which can be handled with this
-# software, such as card information and card images, is copyright of Wizards of the Coast LLC, a
-# Hasbro inc. subsidiary.
-#
-# This software is in no way endorsed or promoted by Scryfall, Zope Foundation, magicthegathering.io or
-# Wizards of the Coast.
-########################################################################################################################
-
 import datetime
 import json
 import uuid
@@ -91,7 +22,7 @@ class PSetList(Persistent):
         name (str): Name of the set list.
     """
 
-    def __init__(self, sets=None, name=''):
+    def __init__(self, sets=None, name=""):
         if isinstance(sets, PSetList):
             self._sets = PersistentList(sets.sets)
         elif isinstance(sets, (PersistentList, list, tuple)):
@@ -169,6 +100,9 @@ class PSetList(Persistent):
         if isinstance(other, PSetList):
             return self.id == other.id
 
+    def __reversed__(self):
+        return reversed(self._sets)
+
     def append(self, pset):
         """Appends the given set object to this list in-place.
 
@@ -206,7 +140,7 @@ class PSetList(Persistent):
         Args:
             pset (PSet): The set object to be searched.
         """
-        self._sets.index(pset)
+        return self._sets.index(pset)
 
     def clear(self):
         """Clears this list."""
@@ -226,7 +160,7 @@ class PSetList(Persistent):
         Args:
             index (int): An index to remove a set from.
         """
-        self._sets.pop(index)
+        return self._sets.pop(index)
 
     def count(self, pset):
         """Returns the number of given set objects in this list. Sets are considered same if they have the same code.
@@ -302,16 +236,16 @@ class PSetList(Persistent):
         """
         del_keys = []
 
-        for (key, val) in kwargs.items():
+        for key, val in kwargs.items():
             if not val:
-                msg = 'Ignoring an empty or null value for keyword {}. Null or empty values are not supported.'
+                msg = "Ignoring an empty or null value for keyword {}. Null or empty values are not supported."
                 warnings.warn(msg.format(key))
                 del_keys.append(key)
             elif len(self.sets) == 0:
-                msg = 'Searching an empty list.'
+                msg = "Searching an empty list."
                 warnings.warn(msg)
             elif not hasattr(self.sets[0], key):
-                msg = 'Ignoring an unrecognized keyword {}. Make sure you are using correct api type and spelling.'
+                msg = "Ignoring an unrecognized keyword {}. Make sure you are using correct api type and spelling."
                 warnings.warn(msg.format(key))
                 del_keys.append(key)
 
@@ -342,16 +276,16 @@ class PSetList(Persistent):
         """
         del_keys = []
 
-        for (key, val) in kwargs.items():
+        for key, val in kwargs.items():
             if not val:
-                msg = 'Ignoring an empty or null value for keyword {}. Null or empty values are not supported.'
+                msg = "Ignoring an empty or null value for keyword {}. Null or empty values are not supported."
                 warnings.warn(msg.format(key))
                 del_keys.append(key)
             elif len(self.sets) == 0:
-                msg = 'Searching an empty list.'
+                msg = "Searching an empty list."
                 warnings.warn(msg)
             elif not hasattr(self.sets[0], key):
-                msg = 'Ignoring an unrecognized keyword {}. Make sure you are using correct api type and spelling.'
+                msg = "Ignoring an unrecognized keyword {}. Make sure you are using correct api type and spelling."
                 warnings.warn(msg.format(key))
                 del_keys.append(key)
 
@@ -378,73 +312,90 @@ class PSetList(Persistent):
             if self.name:
                 return 'Empty set list "{}" created at {}\n'.format(self.name, str(self.creation_date))
             else:
-                return 'Unnamed empty set list created at {}\n'.format(self.creation_date)
+                return "Unnamed empty set list created at {}\n".format(self.creation_date)
 
-        pp_str = ''
+        pp_str = ""
 
         if self.name:
             pp_str += 'Set list "{}" created at {}\n'.format(self.name, str(self.creation_date))
         else:
-            pp_str += 'Unnamed set list created at {}\n'.format(self.creation_date)
+            pp_str += "Unnamed set list created at {}\n".format(self.creation_date)
 
         longest_name = max(len(pset.name) for pset in self.sets)
-        longest_type = max(len(getattr(pset, 'set_type', getattr(pset, 'type', ''))) for pset in self.sets)
+        longest_type = max(len(getattr(pset, "set_type", getattr(pset, "type", ""))) for pset in self.sets)
         longest_block = max(len(pset.block) if pset.block else 0 for pset in self.sets)
         longest_code = max(len(pset.code) if pset.code else 0 for pset in self.sets)
 
-        pp_str += '-' * (longest_name + longest_type + longest_block + longest_code + 17)
-        pp_str += '\n'
+        pp_str += "-" * (longest_name + longest_type + longest_block + longest_code + 17)
+        pp_str += "\n"
 
-        format_str = '{name:{w1}s}   {code:{w2}s}   {block:{w3}s}   {type:{w4}s}   {cards}\n'
-        pp_str += format_str.format(name='Set',
-                                    w1=longest_name,
-                                    code='Code',
-                                    w2=longest_code,
-                                    block='Block',
-                                    w3=longest_block,
-                                    type='Type',
-                                    w4=longest_type,
-                                    cards='Cards')
-        pp_str += '-' * (longest_name + longest_type + longest_block + longest_code + 17)
-        pp_str += '\n'
+        format_str = "{name:{w1}s}   {code:{w2}s}   {block:{w3}s}   {type:{w4}s}   {cards}\n"
+        pp_str += format_str.format(
+            name="Set",
+            w1=longest_name,
+            code="Code",
+            w2=longest_code,
+            block="Block",
+            w3=longest_block,
+            type="Type",
+            w4=longest_type,
+            cards="Cards",
+        )
+        pp_str += "-" * (longest_name + longest_type + longest_block + longest_code + 17)
+        pp_str += "\n"
 
         for pset in self.sets:
-            format_str = '{name:{w1}s}   {code:{w2}s}   {block:{w3}s}   {type:{w4}s}   {cards}\n'
-            pp_str += format_str.format(name=pset.name,
-                                        w1=longest_name,
-                                        code=pset.code,
-                                        w2=longest_code,
-                                        block=pset.block if pset.block else '',
-                                        w3=longest_block,
-                                        type=getattr(pset, 'set_type', getattr(pset, 'type', '')),
-                                        w4=longest_type,
-                                        cards=len(pset))
+            format_str = "{name:{w1}s}   {code:{w2}s}   {block:{w3}s}   {type:{w4}s}   {cards}\n"
+            pp_str += format_str.format(
+                name=pset.name,
+                w1=longest_name,
+                code=pset.code,
+                w2=longest_code,
+                block=pset.block if pset.block else "",
+                w3=longest_block,
+                type=getattr(pset, "set_type", getattr(pset, "type", "")),
+                w4=longest_type,
+                cards=len(pset),
+            )
 
         return pp_str
+
+    def jprint(self):
+        """Prints out the contents of this list in a nice readable JSON format."""
+        print(self.json)
 
     @property
     def api_type(self):
         try:
             return self.sets[0].api_type
         except IndexError:
-            return 'unspecified'
+            return "unspecified"
+
+    @property
+    def len(self):
+        """Returns the number of sets in this list. Works the same as the in-built len()
+        function acting on this PSetList."""
+        return self.__len__()
+
+    @property
+    def first(self):
+        """Returns the first set in this PSetList, or None if the list is empty."""
+        try:
+            return self._sets[0]
+        except IndexError:
+            return None
+
+    @property
+    def last(self):
+        """Returns the last set in this PSetList, or None if the list is empty."""
+        try:
+            return self._sets[-1]
+        except IndexError:
+            return None
 
     @property
     def json(self):
-        pset_json_dicts = []
-
-        for pset in self.sets:
-            json_dict = dict(pset.__dict__)
-            del json_dict['_cards']
-            del json_dict['_sideboard']
-            del json_dict['creation_date']
-            del json_dict['id']
-
-            if len(pset) > 0:
-                json_dict['cards'] = [card.__dict__ for card in pset.cards]
-                pset_json_dicts.append(json_dict)
-
-        return json.dumps({'sets': pset_json_dicts}, sort_keys=True, indent=4)
+        return json.dumps({"sets": [json.loads(pset.json) for pset in self.sets]}, sort_keys=True, indent=4)
 
     @property
     def sets(self):

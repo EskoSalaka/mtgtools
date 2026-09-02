@@ -62,3 +62,35 @@
   algorithm in Pillow for image resizing is 'bicubic', which should be the best for graphics images
 - Added the 'overwrite' parameter to image download methods from scryfall. Setting overwite=False now
   renames duplicate card (name) image files like "Card Name (1).jpg",  "Card Name (2).jpg" etc.
+
+0.9.72 --> 0.9.90
+- The app now supports Rulings served by scryfall. Rulings can be updated with the 'scryfall_bulk_update'-method
+  by setting 'bulk_type="rulings"'. Rulings are linked to each PCard via the 'rulings' attribute (if the card has 
+  any) and PRulings contain a PCardList list of cards they are associated to.
+- Added and refined some pretty-printing functions for the Persistent objects (PCard, PCardList, PSet, PRuling, PSetList)
+- Added the inbuild __reversed__ method to PCardList and PSetList, which mirrors the same function for general iterables
+- Added the 'first' and 'last' attributes to PCardList and PSetList
+- Added the 'limit' arg to the where and where_exactly methods of PCardList which limits the amount of results returned 
+  by the search
+- Changed the 'from_str' method of PCardList to only parse normal playable cards by default. This behaviour can be 
+  can be overridden by setting 'only_playable_cards' to False. As this method is mainly used for parsing deck-like 
+  lists of cards, it is more consistent that the cards that are parsed do not contain certain special non-playable 
+  cards like tokens and art-series cards, which are not legal in a deck.
+- The unique_cards, pprint and pretty_print_str methods of PCardList now retain the ordering of the cards in the list
+- Removed the slow pack-operation from database updates. The pack can be done separately if needed
+- Fixed certain methods of PCardList which fail to sort of group a PCardlists that include some special cards
+  that have no cmc
+- Fixed reading desk strings for the 'deck_str'-method of 'PCardList' which would fail for lines that have the set code
+  and the collector number surrounded by the characters '()', which should be allowed
+- Fixed errors in generating the json-outputs
+- Added the len-property to PCardList and PSetList (a synonym for the inbuilt len())
+- Fixed the index-method of PSetList which always returned None
+- Changed/Corrected the __sub__ behaviour of PCardList to remove only the given number(s) of card(s) from the list
+  instead of all the copies. The copies are removed beginning from the FIRST found occurance in the list. For 
+  example, the operation 'four_wild_mongrels - one_wild_mongrel' equals to three_wild_mongrels instead of the 
+  old behaviour 'four_wild_mongrels - one_wild_mongrel == empty_pcard_list'
+
+Other changes not related to the functionality
+- Added a better system test setup along with a set of more comprehensive tests
+- Cleaned up and formatted the repo. Black is the new default formatter.
+- Changed the license of the project to MIT, which is more standard for these kinds of projects.
